@@ -38,7 +38,7 @@ class MusicPlayer {
     this.textChannel.send(embed);
     const stream = await ytdl(track.ytId, {
       filter: "audio",
-      quality: "lowestaudio",
+      quality: "highestaudio",
       highWaterMark: 1024 * 1024 * 32,
     });
     const dispatcher = this.voiceConnection.play(stream, {
