@@ -22,7 +22,7 @@ ssh
     console.log("STDOUT: " + gitResult.stdout);
     console.log("STDERR: " + gitResult.stderr);
     console.log("pm2 restart skoipy");
-    const pmResult = await ssh.execCommand("pm2 restart skoipy", {
+    const pmResult = await ssh.execCommand("pm2 restart skoip-bot", {
       cwd: "/root/skoip-bot",
     });
     console.log("STDOUT: " + pmResult.stdout);
