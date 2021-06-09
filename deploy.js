@@ -21,8 +21,8 @@ ssh
     });
     console.log("STDOUT: " + gitResult.stdout);
     console.log("STDERR: " + gitResult.stderr);
-    console.log("yarn start");
-    yarnResult = await ssh.execCommand("yarn start", {
+    console.log("pm2 restart skoipy");
+    yarnResult = await ssh.execCommand("pm2 restart skoipy", {
       cwd: "/root/skoip-bot",
     });
     console.log("STDOUT: " + gitResult.stdout);
