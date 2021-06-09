@@ -1,7 +1,7 @@
 export type Track = {
   title: string;
   artist: string;
-  ytId: string;
+  spotifyId: string;
 };
 
 export interface TrackGenerator {

@@ -9,11 +9,11 @@ import {
   VoiceChannel,
   Guild,
 } from "discord.js";
-import SpotifyWebApi from "spotify-web-api-node";
 import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator } from "./types.js";
+import { setupSpotifyApi } from "./util.js";
 
 const client = new Client();
 
@@ -124,19 +124,6 @@ const handleQueueRandomCommand = async (
   generator = new SpotifyGenerator(playlist.uri, spotifyApi);
   const tracks = await generator.generateTracks();
   await player.appendQueue(tracks);
-};
-
-const setupSpotifyApi = async (): Promise<SpotifyWebApi> => {
-  const spotifyApi = new SpotifyWebApi({
-    clientId: process.env.SPOTIFY_CLIENT_ID,
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  });
-
-  // Retrieve an access token.
-  const spotifyToken = await spotifyApi.clientCredentialsGrant();
-  spotifyApi.setAccessToken(spotifyToken.body.access_token);
-
-  return spotifyApi;
 };
 
 client.on("ready", () => {

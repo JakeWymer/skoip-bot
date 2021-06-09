@@ -5,7 +5,9 @@ import {
   EmbedFieldData,
 } from "discord.js";
 import ytdl from "ytdl-core-discord";
+import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
+import { setupSpotifyApi } from "./util.js";
 
 class MusicPlayer {
   voiceConnection: VoiceConnection;
@@ -36,7 +38,12 @@ class MusicPlayer {
       .setColor(`#b7b5e4`)
       .addFields(trackInfo);
     this.textChannel.send(embed);
-    const stream = await ytdl(track.ytId, {
+    const ytId = await this.getYtId(track.spotifyId);
+    if (!ytId) {
+      this.textChannel.send(`No matching YouTube videos found`);
+      return this.playNext();
+    }
+    const stream = await ytdl(ytId, {
       filter: "audio",
       quality: "highestaudio",
       highWaterMark: 1024 * 1024 * 32,
@@ -100,6 +107,12 @@ class MusicPlayer {
   leave() {
     console.log("leaving...");
   }
+  getYtId = async (spotifyId: string) => {
+    const spotifyApi = await setupSpotifyApi();
+    const spotifyToYoutube = SpotifyToYoutube(spotifyApi);
+    const ytId: string = await spotifyToYoutube(spotifyId);
+    return ytId;
+  };
 }
 
 export default MusicPlayer;

@@ -1,4 +1,3 @@
-import SpotifyToYoutube from "spotify-to-youtube";
 import SpotifyWebApi from "spotify-web-api-node";
 
 import { Track, TrackGenerator } from "./types.js";
@@ -6,11 +5,9 @@ import { Track, TrackGenerator } from "./types.js";
 class SpotifyGenerator implements TrackGenerator {
   url: string;
   spotifyApi: SpotifyWebApi;
-  spotifyToYoutube: any;
   constructor(url: string, spotifyApi: SpotifyWebApi) {
     this.url = url;
     this.spotifyApi = spotifyApi;
-    this.spotifyToYoutube = SpotifyToYoutube(spotifyApi);
   }
   generateTracks = async (): Promise<Track[]> => {
     // Is a track URI
@@ -19,10 +16,13 @@ class SpotifyGenerator implements TrackGenerator {
     if (spotifyTrackMatch) {
       const trackId = spotifyTrackMatch[2];
       const { body: track } = await this.spotifyApi.getTrack(trackId);
-      const ytId = await this.getYtId(track);
       return [
-        { title: track.name, artist: track.artists[0].name, ytId },
-      ].filter((track) => track.ytId.length);
+        {
+          title: track.name,
+          artist: track.artists[0].name,
+          spotifyId: trackId,
+        },
+      ];
     }
     // Is an album URI
     const spotifyAlbumRegex = `^(https:\/\/open.spotify.com\/album\/|spotify:album:)([a-zA-Z0-9]+)(.*)$`;
@@ -45,16 +45,15 @@ class SpotifyGenerator implements TrackGenerator {
     const trackItems = albumReponse.body.items;
     const tracks = await Promise.all(
       trackItems.map(async (item: SpotifyApi.TrackObjectSimplified) => {
-        const ytId: string = await this.getYtId(item);
         const track: Track = {
           title: item.name,
           artist: item.artists[0].name,
-          ytId,
+          spotifyId: item.id,
         };
         return track;
       })
     );
-    return tracks.filter((track) => track.ytId.length);
+    return tracks;
   };
   private handlePlaylist = async (playlistId: string): Promise<Track[]> => {
     const playlistResponse = await this.spotifyApi.getPlaylistTracks(
@@ -65,32 +64,18 @@ class SpotifyGenerator implements TrackGenerator {
       const tracks: Track[] = await Promise.all(
         trackItems.map(
           async (item: SpotifyApi.PlaylistTrackObject): Promise<Track> => {
-            const ytId: string = await this.getYtId(item.track);
             const track: Track = {
               title: item.track.name,
               artist: item.track.artists[0].name,
-              ytId,
+              spotifyId: item.track.id,
             };
             return track;
           }
         )
       );
-      return tracks.filter((track) => track.ytId.length);
+      return tracks;
     } catch (err) {
       throw err;
-    }
-  };
-  private getYtId = async (
-    track:
-      | SpotifyApi.TrackObjectFull
-      | SpotifyApi.TrackObjectSimplified
-      | SpotifyApi.SingleTrackResponse
-  ): Promise<string> => {
-    try {
-      const ytId: string = await this.spotifyToYoutube(track);
-      return ytId;
-    } catch {
-      return ``;
     }
   };
 }

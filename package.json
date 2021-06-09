@@ -11,6 +11,7 @@
     "discord.js": "^12.5.3",
     "dotenv": "^9.0.2",
     "node-opus": "^0.3.3",
+    "node-ssh": "^11.1.1",
     "opusscript": "^0.0.8",
     "spotify-to-youtube": "^1.0.1",
     "spotify-web-api-node": "^5.0.2",
