@@ -25,40 +25,44 @@ class MusicPlayer {
     this.dispatcher = null;
   }
   play = async (track: Track, isSkip = false) => {
-    if (this.isPlaying && !isSkip) {
-      this.queue.push(track);
-      return;
-    }
-    const trackInfo: EmbedFieldData = {
-      name: track.title,
-      value: track.artist,
-    };
-    const embed = new MessageEmbed()
-      .setTitle("Now Playing")
-      .setColor(`#b7b5e4`)
-      .addFields(trackInfo);
-    this.textChannel.send(embed);
-    const ytId = await this.getYtId(track.spotifyId);
-    if (!ytId) {
-      this.textChannel.send(`No matching YouTube videos found`);
-      return this.playNext();
-    }
-    const stream = await ytdl(ytId, {
-      filter: "audio",
-      quality: "highestaudio",
-      highWaterMark: 1024 * 1024 * 32,
-    });
-    const dispatcher = this.voiceConnection.play(stream, {
-      type: `opus`,
-    });
-    this.dispatcher = dispatcher;
-    this.isPlaying = true;
-    dispatcher.on("speaking", (isSpeaking) => {
-      this.isPlaying = isSpeaking;
-      if (!isSpeaking) {
-        this.playNext();
+    try {
+      if (this.isPlaying && !isSkip) {
+        this.queue.push(track);
+        return;
       }
-    });
+      const trackInfo: EmbedFieldData = {
+        name: track.title,
+        value: track.artist,
+      };
+      const embed = new MessageEmbed()
+        .setTitle("Now Playing")
+        .setColor(`#b7b5e4`)
+        .addFields(trackInfo);
+      this.textChannel.send(embed);
+      const ytId = await this.getYtId(track.spotifyId);
+      if (!ytId) {
+        this.textChannel.send(`No matching YouTube videos found`);
+        return this.playNext();
+      }
+      const stream = await ytdl(ytId, {
+        filter: "audio",
+        quality: "highestaudio",
+        highWaterMark: 1024 * 1024 * 32,
+      });
+      const dispatcher = this.voiceConnection.play(stream, {
+        type: `opus`,
+      });
+      this.dispatcher = dispatcher;
+      this.isPlaying = true;
+      dispatcher.on("speaking", (isSpeaking) => {
+        this.isPlaying = isSpeaking;
+        if (!isSpeaking) {
+          this.playNext();
+        }
+      });
+    } catch (err) {
+      console.log(err);
+    }
   };
   playNext(isSkip = false) {
     const nextSong = this.queue.shift();
