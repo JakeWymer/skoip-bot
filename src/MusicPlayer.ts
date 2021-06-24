@@ -60,8 +60,12 @@ class MusicPlayer {
           this.playNext();
         }
       });
+      dispatcher.on("error", (err) => {
+        console.error(err);
+        this.playNext();
+      })
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   };
   playNext(isSkip = false) {
