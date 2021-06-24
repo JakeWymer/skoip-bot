@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "start": "npx tsc && node dist/index.js"
+    "start": "yarn install && npx tsc && node dist/index.js"
   },
   "dependencies": {
     "@discordjs/opus": "^0.5.0",
