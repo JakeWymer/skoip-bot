@@ -114,6 +114,7 @@ const handleQueueRandomCommand = async (
   message: Message,
   player: MusicPlayer
 ) => {
+  const shouldShuffle = message.content.includes("-s");
   let generator: TrackGenerator;
   const playlist = await getRandomPlaylist();
   if (!playlist.uri.includes(`spotify`)) {
@@ -124,6 +125,9 @@ const handleQueueRandomCommand = async (
   generator = new SpotifyGenerator(playlist.uri, spotifyApi);
   const tracks = await generator.generateTracks();
   await player.appendQueue(tracks);
+  if (shouldShuffle) {
+    player.shuffle();
+  }
 };
 
 client.on("ready", () => {
