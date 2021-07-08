@@ -3,11 +3,13 @@ import {
   VoiceConnection,
   MessageEmbed,
   EmbedFieldData,
+  VoiceChannel,
 } from "discord.js";
 import ytdl from "ytdl-core-discord";
 import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { setupSpotifyApi } from "./util.js";
+import { EventEmitter} from "events";
 
 class MusicPlayer {
   voiceConnection: VoiceConnection;
@@ -16,15 +18,23 @@ class MusicPlayer {
   currentQueueIndex: number;
   textChannel: TextChannel;
   dispatcher: any;
-  constructor(voiceConnection: VoiceConnection, textChannel: TextChannel) {
+  voiceChannel: VoiceChannel;
+  em: EventEmitter;
+  lastActivity: Date;
+
+  constructor(voiceChannel: VoiceChannel, textChannel: TextChannel, voiceConnection: VoiceConnection, em: EventEmitter) {
     this.voiceConnection = voiceConnection;
     this.textChannel = textChannel;
     this.queue = [];
     this.currentQueueIndex = 0;
     this.isPlaying = false;
     this.dispatcher = null;
+    this.voiceChannel = voiceChannel;
+    this.em = em;
+    this.lastActivity = new Date();
   }
   play = async (track: Track, isSkip = false) => {
+    this.lastActivity = new Date();
     try {
       if (this.isPlaying && !isSkip) {
         this.queue.push(track);
@@ -113,7 +123,10 @@ class MusicPlayer {
     this.textChannel.send(embed);
   };
   leave() {
-    console.log("leaving...");
+    this.voiceChannel.leave();
+    this.textChannel.send("See ya next time..! ;)");
+    const guildId = this.textChannel.guild.id;
+    this.em.emit("leave", guildId);
   }
   getYtId = async (spotifyId: string) => {
     const spotifyApi = await setupSpotifyApi();
