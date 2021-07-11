@@ -14,7 +14,7 @@ import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
-import { EventEmitter} from "events";
+import { EventEmitter } from "events";
 
 const client = new Client();
 
@@ -38,15 +38,21 @@ setInterval(() => {
   const oneHour = 60000 * 60;
   const now = new Date();
   Object.values(botServerMap).forEach((player) => {
-    if(now.getTime() - player.lastActivity.getTime() > oneHour) {
+    if (now.getTime() - player.lastActivity.getTime() > oneHour) {
       player.leave();
     }
-  })
+  });
 }, 60000);
 
 const getJoinMessage = (message: Message) => {
   const userName = message.member?.displayName;
-  const serverJoinMessages = [`Heyooooo, ${userName}!`,`Howdy-ho, ${userName}!`,"Skoip Skoip!",`Well hiiii, ${userName}!`,`Hulloooo, ${userName}!`];
+  const serverJoinMessages = [
+    `Heyooooo, ${userName}!`,
+    `Howdy-ho, ${userName}!`,
+    "Skoip Skoip!",
+    `Well hiiii, ${userName}!`,
+    `Hulloooo, ${userName}!`,
+  ];
   const randomMessage = getRandomElement(serverJoinMessages);
   return randomMessage;
 };
@@ -88,8 +94,13 @@ const joinChannel = async (message: Message) => {
   textChannel.send(getJoinMessage(message));
   const voiceConnection = await voiceChannel.join();
   const em = new EventEmitter();
-  em.on("leave", leaveServer)
-  const player = new MusicPlayer(voiceChannel, textChannel, voiceConnection, em);
+  em.on("leave", leaveServer);
+  const player = new MusicPlayer(
+    voiceChannel,
+    textChannel,
+    voiceConnection,
+    em
+  );
   botServerMap[guild.id] = player;
   return player;
 };
