@@ -8,8 +8,16 @@ import {
 import ytdl from "ytdl-core-discord";
 import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
-import { setupSpotifyApi } from "./util.js";
-import { EventEmitter} from "events";
+import { getRandomElement, setupSpotifyApi } from "./util.js";
+import { EventEmitter } from "events";
+
+const serverLeaveMessages = [
+  "See ya next time..! ;)",
+  "Seeya!",
+  "Goodbye!",
+  "Leaving...",
+  "Getting outta there!",
+];
 
 class MusicPlayer {
   voiceConnection: VoiceConnection;
@@ -22,7 +30,12 @@ class MusicPlayer {
   em: EventEmitter;
   lastActivity: Date;
 
-  constructor(voiceChannel: VoiceChannel, textChannel: TextChannel, voiceConnection: VoiceConnection, em: EventEmitter) {
+  constructor(
+    voiceChannel: VoiceChannel,
+    textChannel: TextChannel,
+    voiceConnection: VoiceConnection,
+    em: EventEmitter
+  ) {
     this.voiceConnection = voiceConnection;
     this.textChannel = textChannel;
     this.queue = [];
@@ -55,7 +68,7 @@ class MusicPlayer {
         return this.playNext();
       }
       const videoLength = await this.getYtLength(ytId);
-      if (videoLength > 900 ) {
+      if (videoLength > 900) {
         this.textChannel.send(`Cannot play content longer than 15 minutes`);
         return this.playNext();
       }
@@ -78,7 +91,7 @@ class MusicPlayer {
       dispatcher.on("error", (err) => {
         console.error(err);
         this.playNext();
-      })
+      });
     } catch (err) {
       console.error(err);
     }
@@ -129,7 +142,7 @@ class MusicPlayer {
   };
   leave() {
     this.voiceChannel.leave();
-    this.textChannel.send("See ya next time..! ;)");
+    this.textChannel.send(getRandomElement(serverLeaveMessages));
     const guildId = this.textChannel.guild.id;
     this.em.emit("leave", guildId);
   }
@@ -139,9 +152,11 @@ class MusicPlayer {
     const ytId: string = await spotifyToYoutube(spotifyId);
     return ytId;
   };
-  getYtLength = async (youtubeId: string):Promise<number> => {
-    const metaData = await ytdl.getBasicInfo(`https://www.youtube.com/watch?v=${youtubeId}`);
+  getYtLength = async (youtubeId: string): Promise<number> => {
+    const metaData = await ytdl.getBasicInfo(
+      `https://www.youtube.com/watch?v=${youtubeId}`
+    );
     return parseInt(metaData.videoDetails.lengthSeconds);
-  }
+  };
 }
 export default MusicPlayer;
