@@ -13,7 +13,7 @@ import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator } from "./types.js";
-import { setupSpotifyApi } from "./util.js";
+import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter} from "events";
 
 const client = new Client();
@@ -43,6 +43,13 @@ setInterval(() => {
     }
   })
 }, 60000);
+
+const getJoinMessage = (message: Message) => {
+  const userName = message.member?.displayName;
+  const serverJoinMessages = [`Heyooooo, ${userName}!`,`Howdy-ho, ${userName}!`,"Skoip Skoip!",`Well hiiii, ${userName}!`,`Hulloooo, ${userName}!`];
+  const randomMessage = getRandomElement(serverJoinMessages);
+  return randomMessage;
+};
 
 const matchCommand = (message: Message, command: string[]) => {
   const content = message.content.slice(1).split(` `);
@@ -78,6 +85,7 @@ const joinChannel = async (message: Message) => {
   if (!voiceChannel) {
     return textChannel.send("You need to be in a voice channel to play music.");
   }
+  textChannel.send(getJoinMessage(message));
   const voiceConnection = await voiceChannel.join();
   const em = new EventEmitter();
   em.on("leave", leaveServer)

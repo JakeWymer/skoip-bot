@@ -8,8 +8,10 @@ import {
 import ytdl from "ytdl-core-discord";
 import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
-import { setupSpotifyApi } from "./util.js";
+import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter} from "events";
+
+const serverLeaveMessages = ["See ya next time..! ;)","Seeya!","Goodbye!","Leaving...","Getting outta there!"];
 
 class MusicPlayer {
   voiceConnection: VoiceConnection;
@@ -129,7 +131,7 @@ class MusicPlayer {
   };
   leave() {
     this.voiceChannel.leave();
-    this.textChannel.send("See ya next time..! ;)");
+    this.textChannel.send(getRandomElement(serverLeaveMessages));
     const guildId = this.textChannel.guild.id;
     this.em.emit("leave", guildId);
   }

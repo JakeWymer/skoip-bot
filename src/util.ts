@@ -12,3 +12,8 @@ export const setupSpotifyApi = async (): Promise<SpotifyWebApi> => {
 
   return spotifyApi;
 };
+
+export const getRandomElement = (arr: any[]) => {
+  const randomIndex = Math.floor(Math.random() * arr.length);
+  return arr[randomIndex];
+  }
