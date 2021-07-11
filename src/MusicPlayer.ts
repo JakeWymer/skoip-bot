@@ -54,6 +54,11 @@ class MusicPlayer {
         this.textChannel.send(`No matching YouTube videos found`);
         return this.playNext();
       }
+      const videoLength = await this.getYtLength(ytId);
+      if (videoLength > 900 ) {
+        this.textChannel.send(`Cannot play content longer than 15 minutes`);
+        return this.playNext();
+      }
       const stream = await ytdl(ytId, {
         filter: "audio",
         quality: "highestaudio",
@@ -134,6 +139,9 @@ class MusicPlayer {
     const ytId: string = await spotifyToYoutube(spotifyId);
     return ytId;
   };
+  getYtLength = async (youtubeId: string):Promise<number> => {
+    const metaData = await ytdl.getBasicInfo(`https://www.youtube.com/watch?v=${youtubeId}`);
+    return parseInt(metaData.videoDetails.lengthSeconds);
+  }
 }
-
 export default MusicPlayer;
