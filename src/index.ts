@@ -15,6 +15,9 @@ import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
+import Server from "./db/models/Server.js";
+
+import "./db/index.js";
 
 const client = new Client();
 
@@ -30,6 +33,7 @@ const BotCommands = {
   STOP: [`stop`],
   SHOW_QUEUE: [`queue`, `q`],
   LEAVE: [`leave`],
+  SET_SHEET: [`set_sheet_id`, `set_sheet`],
 };
 
 const botServerMap: { [key: string]: MusicPlayer } = {};
@@ -131,6 +135,21 @@ const handleMessage = async (message: Message) => {
     await player.showQueue();
   } else if (matchCommand(message, BotCommands.LEAVE)) {
     await player.leave();
+  } else if (matchCommand(message, BotCommands.SET_SHEET)) {
+    const sheetsId = message.content.split(` `)[1];
+    let serverConfig = (await Server.findOne({
+      where: {
+        server_id: message.guild?.id,
+      },
+    })) as any;
+    if (!serverConfig) {
+      serverConfig = await Server.create({
+        server_id: message.guild?.id,
+      });
+    }
+    serverConfig.sheets_id = sheetsId;
+    serverConfig.save();
+    return message.channel.send(`Set sheets id to: ${sheetsId}`);
   }
 };
 
@@ -152,7 +171,10 @@ const handleQueueRandomCommand = async (
 ) => {
   const shouldShuffle = message.content.includes("-s");
   let generator: TrackGenerator;
-  const playlist = await getRandomPlaylist();
+  const playlist = await getRandomPlaylist(message);
+  if (!playlist) {
+    return message.channel.send("Could not fetch random playlist");
+  }
   if (!playlist.uri.includes(`spotify`)) {
     return message.channel.send("Unsupported integration");
   }
