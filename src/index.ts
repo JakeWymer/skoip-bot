@@ -8,6 +8,7 @@ import {
   GuildMember,
   VoiceChannel,
   Guild,
+  WSEventType,
 } from "discord.js";
 import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
@@ -18,6 +19,7 @@ import { EventEmitter } from "events";
 import Server from "./db/models/Server.js";
 
 import "./db/index.js";
+import axios from "axios";
 
 const client = new Client();
 
@@ -48,8 +50,8 @@ setInterval(() => {
   });
 }, 60000);
 
-const getJoinMessage = (message: Message) => {
-  const userName = message.member?.displayName;
+const getJoinMessage = (member: GuildMember) => {
+  const userName = member?.displayName;
   const serverJoinMessages = [
     `Heyooooo, ${userName}!`,
     `Howdy-ho, ${userName}!`,
@@ -70,11 +72,15 @@ const isInServer = (guildId: string) => {
   return botServerMap[guildId];
 };
 
-const getPlayer = async (message: Message, guildId: string): Promise<any> => {
+const getPlayer = async (
+  sentBy: GuildMember,
+  textChannel: TextChannel,
+  guildId: string
+): Promise<any> => {
   if (isInServer(guildId)) {
     return botServerMap[guildId];
   }
-  return await joinChannel(message);
+  return await joinChannelInteraction(sentBy, textChannel, guildId);
 };
 
 const leaveServer = (guildId: string) => {
@@ -95,7 +101,7 @@ const joinChannel = async (message: Message) => {
   if (!voiceChannel) {
     return textChannel.send("You need to be in a voice channel to play music.");
   }
-  textChannel.send(getJoinMessage(message));
+  textChannel.send(getJoinMessage(sentBy));
   const voiceConnection = await voiceChannel.join();
   const em = new EventEmitter();
   em.on("leave", leaveServer);
@@ -109,48 +115,99 @@ const joinChannel = async (message: Message) => {
   return player;
 };
 
-const handleMessage = async (message: Message) => {
-  if (message.content.length === 0 || message.content[0] !== BOT_PREFIX) return;
-  const { guild } = message;
-  if (!guild) {
-    return message.channel.send("No guild found.");
+// const handleMessage = async (message: Message) => {
+//   if (message.content.length === 0 || message.content[0] !== BOT_PREFIX) return;
+//   const { guild } = message;
+//   if (!guild) {
+//     return message.channel.send("No guild found.");
+//   }
+//   let player = await getPlayer(message, guild.id);
+//   if (!player) {
+//     return;
+//   }
+
+// const textChannel = message.channel as TextChannel;
+
+//   if (matchCommand(message, BotCommands.PLAY)) {
+//     await handlePlayCommand(message, player);
+//   } else if (matchCommand(message, BotCommands.SHUFFLE)) {
+//     player.shuffle();
+//   } else if (matchCommand(message, BotCommands.SKIP)) {
+//     player.playNext(true);
+//   } else if (matchCommand(message, BotCommands.QUEUE_RANDOM)) {
+//     await handleQueueRandomCommand(textChannel, player);
+//   } else if (matchCommand(message, BotCommands.CLEAR_QUEUE)) {
+//     player.clearQueue();
+//   } else if (matchCommand(message, BotCommands.STOP)) {
+//     player.stop();
+//   } else if (matchCommand(message, BotCommands.SHOW_QUEUE)) {
+//     await player.showQueue();
+//   } else if (matchCommand(message, BotCommands.LEAVE)) {
+//     await player.leave();
+//   } else if (matchCommand(message, BotCommands.SET_SHEET)) {
+//     const sheetsId = message.content.split(` `)[1];
+//     let serverConfig = (await Server.findOne({
+//       where: {
+//         server_id: message.guild?.id,
+//       },
+//     })) as any;
+//     if (!serverConfig) {
+//       serverConfig = await Server.create({
+//         server_id: message.guild?.id,
+//       });
+//     }
+//     serverConfig.sheets_id = sheetsId;
+//     serverConfig.save();
+//     return message.channel.send(`Set sheets id to: ${sheetsId}`);
+//   }
+// };
+
+const joinChannelInteraction = async (
+  sentBy: GuildMember,
+  textChannel: TextChannel,
+  guildId: string
+) => {
+  const voiceChannel = sentBy.voice.channel as VoiceChannel;
+  if (!voiceChannel) {
+    return textChannel.send("You need to be in a voice channel to play music.");
   }
-  let player = await getPlayer(message, guild.id);
-  if (!player) {
-    return;
+  textChannel.send(getJoinMessage(sentBy));
+  const voiceConnection = await voiceChannel.join();
+  const em = new EventEmitter();
+  em.on("leave", leaveServer);
+  const player = new MusicPlayer(
+    voiceChannel,
+    textChannel,
+    voiceConnection,
+    em
+  );
+  botServerMap[guildId] = player;
+  return player;
+};
+
+const handleInteraction = async (interaction: any) => {
+  const responseURL = `https://discord.com/api/v8/interactions/${interaction.id}/${interaction.token}/callback`;
+  console.log(interaction);
+  const guild = await client.guilds.fetch(interaction.guild_id);
+  const channel = (await client.channels.fetch(
+    interaction.channel_id
+  )) as TextChannel;
+  const user = await guild.members.fetch(interaction.member.user.id);
+  const player = await getPlayer(user, channel, guild.id);
+  switch (interaction.data.name) {
+    case "random":
+      await handleQueueRandomCommand(channel, player);
+      return;
+    case "skip":
+      player.playNext(true);
+      return;
+    default:
+      channel.send("Command not found");
   }
-  if (matchCommand(message, BotCommands.PLAY)) {
-    await handlePlayCommand(message, player);
-  } else if (matchCommand(message, BotCommands.SHUFFLE)) {
-    player.shuffle();
-  } else if (matchCommand(message, BotCommands.SKIP)) {
-    player.playNext(true);
-  } else if (matchCommand(message, BotCommands.QUEUE_RANDOM)) {
-    await handleQueueRandomCommand(message, player);
-  } else if (matchCommand(message, BotCommands.CLEAR_QUEUE)) {
-    player.clearQueue();
-  } else if (matchCommand(message, BotCommands.STOP)) {
-    player.stop();
-  } else if (matchCommand(message, BotCommands.SHOW_QUEUE)) {
-    await player.showQueue();
-  } else if (matchCommand(message, BotCommands.LEAVE)) {
-    await player.leave();
-  } else if (matchCommand(message, BotCommands.SET_SHEET)) {
-    const sheetsId = message.content.split(` `)[1];
-    let serverConfig = (await Server.findOne({
-      where: {
-        server_id: message.guild?.id,
-      },
-    })) as any;
-    if (!serverConfig) {
-      serverConfig = await Server.create({
-        server_id: message.guild?.id,
-      });
-    }
-    serverConfig.sheets_id = sheetsId;
-    serverConfig.save();
-    return message.channel.send(`Set sheets id to: ${sheetsId}`);
-  }
+  await axios.post(responseURL, {
+    type: interaction.type,
+    data: { content: "" },
+  });
 };
 
 const handlePlayCommand = async (message: Message, player: MusicPlayer) => {
@@ -166,17 +223,17 @@ const handlePlayCommand = async (message: Message, player: MusicPlayer) => {
 };
 
 const handleQueueRandomCommand = async (
-  message: Message,
-  player: MusicPlayer
+  textChannel: TextChannel,
+  player: MusicPlayer,
+  shouldShuffle = false
 ) => {
-  const shouldShuffle = message.content.includes("-s");
   let generator: TrackGenerator;
-  const playlist = await getRandomPlaylist(message);
+  const playlist = await getRandomPlaylist(textChannel.guild.id);
   if (!playlist) {
-    return message.channel.send("Could not fetch random playlist");
+    return textChannel.send("Could not fetch random playlist");
   }
   if (!playlist.uri.includes(`spotify`)) {
-    return message.channel.send("Unsupported integration");
+    return textChannel.send("Unsupported integration");
   }
   player.textChannel.send(`Queuing ${playlist.name}`);
   const spotifyApi = await setupSpotifyApi();
@@ -192,6 +249,7 @@ client.on("ready", () => {
   console.log("Skoipy online");
 });
 
-client.on("message", handleMessage);
-
+// client.on("message", handleMessage);
+const interactionEvent = "INTERACTION_CREATE" as WSEventType;
+client.ws.on(interactionEvent, handleInteraction);
 client.login(process.env.BOT_TOKEN || ``);

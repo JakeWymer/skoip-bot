@@ -27,10 +27,10 @@ const getPlaylistRows = async (spreadsheetId: string) => {
   }
 };
 
-export const getRandomPlaylist = async (message: Message) => {
+export const getRandomPlaylist = async (guildId: string) => {
   const serverConfig = (await Server.findOne({
     where: {
-      server_id: message.guild?.id,
+      server_id: guildId,
     },
   })) as any;
   if (!serverConfig || !serverConfig.sheets_id) {
