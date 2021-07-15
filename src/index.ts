@@ -197,16 +197,16 @@ const handleInteraction = async (interaction: any) => {
   switch (interaction.data.name) {
     case "random":
       await handleQueueRandomCommand(channel, player);
-      return;
+      break;
     case "skip":
       player.playNext(true);
-      return;
+      break;
     default:
       channel.send("Command not found");
   }
   await axios.post(responseURL, {
-    type: interaction.type,
-    data: { content: "" },
+    type: 4,
+    data: { content: "Woohooo" },
   });
 };
 
