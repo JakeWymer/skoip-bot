@@ -2,12 +2,11 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import axios from "axios";
+import chalk from "chalk";
 import commands from "../commands.mjs";
 
-const applicationId = process.env.APPLICATION_ID;
 const botToken = process.env.BOT_TOKEN;
-const url = `https://discord.com/api/v8/applications/${applicationId}/commands`;
-const guildURL = `https://discord.com/api/v8/applications/${applicationId}/guilds/596370362422395042/commands`;
+const url = process.env.SLASH_COMMANDS_URL;
 
 const options = {
   method: "put",
@@ -16,10 +15,15 @@ const options = {
     "Content-Type": "application/json",
   },
   data: JSON.stringify(commands),
-  url: guildURL,
+  url,
 };
-try {
-  await axios(options);
-} catch (error) {
-  console.log(error.toJSON());
-}
+
+(async () => {
+  try {
+    await axios(options);
+    console.log(chalk.green("Slash commands successfully updated"));
+  } catch (error) {
+    console.log(error.toJSON());
+    console.log(chalk.red("Slash commands failed to update"));
+  }
+})();

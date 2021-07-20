@@ -9,6 +9,7 @@
     "@typeit/discord": "^4.0.10",
     "@types/spotify-web-api-node": "^5.0.2",
     "axios": "^0.21.1",
+    "chalk": "^4.1.1",
     "discord.js": "^12.5.3",
     "dotenv": "^9.0.2",
     "ffmpeg-static": "^4.4.0",
