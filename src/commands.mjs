@@ -1,6 +1,14 @@
 const random = {
   name: "random",
   description: "Queues a random playlist from Google sheets",
+  options: [
+    {
+      type: 5,
+      name: "shuffle",
+      description: "Shuffle the playlist after queuing",
+      required: false,
+    },
+  ],
 };
 const skip = {
   name: "skip",

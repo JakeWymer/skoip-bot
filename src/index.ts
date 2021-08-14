@@ -118,7 +118,10 @@ const handleInteraction = async (interaction: any) => {
   const player = await getPlayer(user, channel, guild.id);
   switch (interaction.data.name) {
     case Commands.QUEUE_RANDOM:
-      await handleQueueRandomCommand(channel, player);
+      const shouldShuffle = interaction.data?.options
+        ? interaction.data.options[0].value
+        : false;
+      await handleQueueRandomCommand(channel, player, shouldShuffle);
       break;
     case Commands.SKIP:
       player.playNext(true);
