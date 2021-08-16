@@ -10,6 +10,7 @@ import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
+import { handleQueueRandomCommand } from "./index.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -29,6 +30,8 @@ class MusicPlayer {
   voiceChannel: VoiceChannel;
   em: EventEmitter;
   lastActivity: Date;
+  isAutoQueue: boolean;
+  autoQueueShuffle: boolean;
 
   constructor(
     voiceChannel: VoiceChannel,
@@ -45,6 +48,8 @@ class MusicPlayer {
     this.voiceChannel = voiceChannel;
     this.em = em;
     this.lastActivity = new Date();
+    this.isAutoQueue = false;
+    this.autoQueueShuffle = false;
   }
   play = async (track: Track, isSkip = false) => {
     this.lastActivity = new Date();
@@ -96,16 +101,25 @@ class MusicPlayer {
       console.error(err);
     }
   };
-  playNext(isSkip = false) {
-    const nextSong = this.queue.shift();
+  playNext = async (isSkip = false) => {
+    let nextSong = this.queue.shift();
     if (isSkip) {
       this.textChannel.send(`Skoip skoip!`);
     }
     if (!nextSong) {
-      return this.textChannel.send(`That's the end of the queue!`);
+      if (this.isAutoQueue) {
+        await handleQueueRandomCommand(
+          this.textChannel,
+          this,
+          this.autoQueueShuffle
+        );
+        nextSong = this.queue.shift() as Track;
+      } else {
+        return this.textChannel.send(`That's the end of the queue!`);
+      }
     }
     this.play(nextSong, isSkip);
-  }
+  };
   appendQueue(tracks: Track[]) {
     this.queue = [...this.queue, ...tracks];
     this.textChannel.send(`${tracks.length} songs added to the queue...`);

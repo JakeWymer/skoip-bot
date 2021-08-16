@@ -22,4 +22,5 @@ export enum Commands {
   SHOW_QUEUE = "queue",
   LEAVE = "leave",
   SET_SHEET = "set_sheet_id",
+  AUTO_QUEUE = "auto_queue",
 }

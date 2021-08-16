@@ -54,6 +54,27 @@ const setSheet = {
     },
   ],
 };
+const autoQueue = {
+  name: "auto_queue",
+  description:
+    "When turned on, Skoipy will automatically queue up a playlist from your Google Sheet.",
+  options: [
+    {
+      type: 5,
+      name: "enabled",
+      description:
+        "Set to True if you would like to enable auto queue for this session.",
+      required: true,
+    },
+    {
+      type: 5,
+      name: "shuffle",
+      description:
+        "Set to True if you would like to shuffle every playlist auto queued for this session.",
+      required: false,
+    },
+  ],
+};
 
 const commands = [
   random,
@@ -64,5 +85,6 @@ const commands = [
   showQueue,
   leave,
   setSheet,
+  autoQueue,
 ];
 export default commands;

@@ -27,7 +27,11 @@ setInterval(() => {
   const oneHour = 60000 * 60;
   const now = new Date();
   Object.values(botServerMap).forEach((player) => {
-    if (now.getTime() - player.lastActivity.getTime() > oneHour) {
+    const numberOfVoiceMembers = player.voiceChannel.members.size;
+    if (
+      now.getTime() - player.lastActivity.getTime() > oneHour ||
+      !numberOfVoiceMembers
+    ) {
       player.leave();
     }
   });
@@ -148,6 +152,19 @@ const handleInteraction = async (interaction: any) => {
     case Commands.SET_SHEET:
       await setSheetId(interaction.data.options[0].value, guild.id, channel);
       break;
+    case Commands.AUTO_QUEUE:
+      const isEnabled = interaction.data.options[0].value;
+      player.isAutoQueue = isEnabled;
+      const shouldAutoShuffle =
+        interaction.data?.options.length > 1
+          ? interaction.data.options[1].value
+          : false;
+      player.autoQueueShuffle = shouldAutoShuffle;
+      channel.send(`Auto Queue ${isEnabled ? `enabled` : `disabled`}`);
+      if (!player.queue.length && isEnabled) {
+        await handleQueueRandomCommand(channel, player, shouldAutoShuffle);
+      }
+      break;
     default:
       channel.send("Command not found");
   }
@@ -172,7 +189,7 @@ const handlePlayCommand = async (
   await player.appendQueue(tracks);
 };
 
-const handleQueueRandomCommand = async (
+export const handleQueueRandomCommand = async (
   textChannel: TextChannel,
   player: MusicPlayer,
   shouldShuffle = false
