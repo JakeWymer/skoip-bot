@@ -108,12 +108,11 @@ class MusicPlayer {
     }
     if (!nextSong) {
       if (this.isAutoQueue) {
-        await handleQueueRandomCommand(
+        return await handleQueueRandomCommand(
           this.textChannel,
           this,
           this.autoQueueShuffle
         );
-        nextSong = this.queue.shift() as Track;
       } else {
         return this.textChannel.send(`That's the end of the queue!`);
       }
