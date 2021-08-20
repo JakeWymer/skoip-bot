@@ -18,6 +18,7 @@ import Server from "./db/models/Server.js";
 
 import "./db/index.js";
 import axios from "axios";
+import YoutubeGenerator from "./YoutubeGenerator.js";
 
 const client = new Client();
 
@@ -180,11 +181,14 @@ const handlePlayCommand = async (
   player: MusicPlayer
 ) => {
   let generator: TrackGenerator;
-  if (!url.includes(`spotify`)) {
+  if (url.includes(`spotify`)) {
+    const spotifyApi = await setupSpotifyApi();
+    generator = new SpotifyGenerator(url, spotifyApi);
+  } else if (url.includes("youtube")) {
+    generator = new YoutubeGenerator(url);
+  } else {
     return channel.send("Unsupported integration");
   }
-  const spotifyApi = await setupSpotifyApi();
-  generator = new SpotifyGenerator(url, spotifyApi);
   const tracks = await generator.generateTracks();
   await player.appendQueue(tracks);
 };

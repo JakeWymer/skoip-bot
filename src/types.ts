@@ -1,7 +1,8 @@
 export type Track = {
   title: string;
-  artist: string;
-  spotifyId: string;
+  artist?: string;
+  spotifyId?: string;
+  ytId?: string;
 };
 
 export interface TrackGenerator {
