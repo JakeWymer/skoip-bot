@@ -60,14 +60,17 @@ class MusicPlayer {
       }
       const trackInfo: EmbedFieldData = {
         name: track.title,
-        value: track.artist,
+        value: track.artist || "unknown",
       };
       const embed = new MessageEmbed()
         .setTitle("Now Playing")
         .setColor(`#b7b5e4`)
         .addFields(trackInfo);
       this.textChannel.send(embed);
-      const ytId = await this.getYtId(track.spotifyId);
+      const ytId = track.spotifyId
+        ? await this.getYtId(track.spotifyId)
+        : track.ytId;
+      console.log(ytId);
       if (!ytId) {
         this.textChannel.send(`No matching YouTube videos found`);
         return this.playNext();
@@ -146,7 +149,7 @@ class MusicPlayer {
       const title = track.title;
       const field: EmbedFieldData = {
         name: `${i + 1}.) ${title}`,
-        value: track.artist,
+        value: track.artist || "unknown",
       };
       return field;
     });
