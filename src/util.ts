@@ -1,3 +1,4 @@
+import { TextChannel } from "discord.js";
 import SpotifyWebApi from "spotify-web-api-node";
 
 export const setupSpotifyApi = async (): Promise<SpotifyWebApi> => {
@@ -17,3 +18,16 @@ export const getRandomElement = (arr: any[]) => {
   const randomIndex = Math.floor(Math.random() * arr.length);
   return arr[randomIndex];
 };
+
+export class ErrorLogger {
+  errorChannel: TextChannel;
+
+  constructor(channel: TextChannel) {
+    this.errorChannel = channel;
+    this.log("Logging online");
+  }
+
+  log(message: string) {
+    this.errorChannel.send(message);
+  }
+}

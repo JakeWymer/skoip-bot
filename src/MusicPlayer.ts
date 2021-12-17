@@ -10,7 +10,7 @@ import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
-import { handleQueueRandomCommand } from "./index.js";
+import { errorLogger, handleQueueRandomCommand } from "./index.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -100,8 +100,15 @@ class MusicPlayer {
         console.error(err);
         this.playNext();
       });
-    } catch (err) {
+    } catch (err: unknown) {
+      let errorMessage = "Something went wrong...Unknown Error";
       console.error(err);
+      if (typeof err === "string") {
+        errorMessage = err;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      errorLogger.log(errorMessage);
     }
   };
   playNext = async (isSkip = false) => {

@@ -12,7 +12,7 @@ import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator, Commands } from "./types.js";
-import { getRandomElement, setupSpotifyApi } from "./util.js";
+import { ErrorLogger, getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
 import Server from "./db/models/Server.js";
 
@@ -20,6 +20,7 @@ import "./db/index.js";
 import axios from "axios";
 import YoutubeGenerator from "./YoutubeGenerator.js";
 
+export let errorLogger: ErrorLogger;
 const client = new Client();
 
 const botServerMap: { [key: string]: MusicPlayer } = {};
@@ -218,6 +219,12 @@ export const handleQueueRandomCommand = async (
 
 client.on("ready", () => {
   console.log("Skoipy online");
+  client.channels
+    .fetch(process.env.ERROR_CHANNEL_ID as string)
+    .then((channel) => {
+      errorLogger = new ErrorLogger(channel as TextChannel);
+    })
+    .catch(console.error);
 });
 
 const interactionEvent = "INTERACTION_CREATE" as WSEventType;
