@@ -5,7 +5,7 @@ import {
   EmbedFieldData,
   VoiceChannel,
 } from "discord.js";
-import ytdl from "ytdl-core-discord";
+import ytdl from "ytdl-core";
 import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
@@ -70,7 +70,6 @@ class MusicPlayer {
       const ytId = track.spotifyId
         ? await this.getYtId(track.spotifyId)
         : track.ytId;
-      console.log(ytId);
       if (!ytId) {
         this.textChannel.send(`No matching YouTube videos found`);
         return this.playNext();
@@ -85,9 +84,7 @@ class MusicPlayer {
         quality: "highestaudio",
         highWaterMark: 1024 * 1024 * 32,
       });
-      const dispatcher = this.voiceConnection.play(stream, {
-        type: `opus`,
-      });
+      const dispatcher = this.voiceConnection.play(stream);
       this.dispatcher = dispatcher;
       this.isPlaying = true;
       dispatcher.on("speaking", (isSpeaking) => {
@@ -98,17 +95,12 @@ class MusicPlayer {
       });
       dispatcher.on("error", (err) => {
         console.error(err);
+        errorLogger.log(JSON.stringify(err));
         this.playNext();
       });
     } catch (err: unknown) {
-      let errorMessage = "Something went wrong...Unknown Error";
       console.error(err);
-      if (typeof err === "string") {
-        errorMessage = err;
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      errorLogger.log(errorMessage);
+      errorLogger.log(JSON.stringify(err));
     }
   };
   playNext = async (isSkip = false) => {
