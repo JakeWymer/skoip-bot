@@ -12,7 +12,7 @@ import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator, Commands } from "./types.js";
-import { ErrorLogger, getRandomElement, setupSpotifyApi } from "./util.js";
+import { ErrorLogger, generateSkoipyPlaylist, getRandomElement, setSkoipyKey, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
 import Server from "./db/models/Server.js";
 
@@ -166,6 +166,19 @@ const handleInteraction = async (interaction: any) => {
       if (!player.queue.length && isEnabled) {
         await handleQueueRandomCommand(channel, player, shouldAutoShuffle);
       }
+      break;
+    case Commands.SET_SKOIPY_KEY:
+      const apiKey = interaction.data.options[0].value;
+      await setSkoipyKey(apiKey, guild.id, channel);
+      break;
+    case Commands.GENERATE_AND_PLAY:
+      const generatorId = interaction.data.options[0].value;
+      const playlistUri = await generateSkoipyPlaylist(guild.id, generatorId);
+      await handlePlayCommand(
+        playlistUri,
+        channel,
+        player
+      );
       break;
     default:
       channel.send("Command not found");

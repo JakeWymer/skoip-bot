@@ -1,7 +1,6 @@
 import axios from "axios";
 import { getRandomElement } from "./util.js";
 import Server from "./db/models/Server.js";
-import { Message } from "discord.js";
 
 const getPlaylistRows = async (spreadsheetId: string) => {
   const NAME_INDEX = 0;

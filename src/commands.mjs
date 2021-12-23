@@ -75,6 +75,30 @@ const autoQueue = {
     },
   ],
 };
+const setSkoipyKey = {
+  name: "set_skoipy_api_key",
+  description: "Sets the API key used to generate Skoipy playlists",
+  options: [
+    {
+      type: 3,
+      name: "skoipy_api_key",
+      description: "Your Skoipy API key",
+      required: true,
+    },
+  ],
+};
+const generateAndPlay = {
+  name: "generate_and_play",
+  description: "Generates a new Skoipy playlist and adds the songs to the queue",
+  options: [
+    {
+      type: 4,
+      name: "generator_id",
+      description: "ID of the generator you would like to use for playlist generation",
+      required: true,
+    },
+  ],
+};
 
 const commands = [
   random,
@@ -86,5 +110,7 @@ const commands = [
   leave,
   setSheet,
   autoQueue,
+  setSkoipyKey,
+  generateAndPlay,
 ];
 export default commands;
