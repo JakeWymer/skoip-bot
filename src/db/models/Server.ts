@@ -12,6 +12,9 @@ const Server = db.define(
     sheets_id: {
       type: DataTypes.STRING,
     },
+    skoipy_api_key: {
+      type: DataTypes.STRING,
+    }
   },
   {
     tableName: `server_config`,

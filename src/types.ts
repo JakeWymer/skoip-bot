@@ -14,6 +14,11 @@ export type SheetResponse = {
   uri: string;
 };
 
+export type SkoipyPlaylistResponse = {
+  isError: boolean;
+  playlist: any;
+}
+
 export enum Commands {
   PLAY = "play",
   SKIP = "skip",
@@ -24,4 +29,6 @@ export enum Commands {
   LEAVE = "leave",
   SET_SHEET = "set_sheet_id",
   AUTO_QUEUE = "auto_queue",
+  SET_SKOIPY_KEY = "set_skoipy_api_key",
+  GENERATE_AND_PLAY = "generate_and_play",
 }
