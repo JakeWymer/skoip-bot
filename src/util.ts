@@ -31,8 +31,7 @@ export const generateSkoipyPlaylist = async (guildId: string, generatorId: numbe
   if (!serverConfig || !serverConfig.skoipy_api_key) {
     return null;
   }
-  // const url = `https://skoipy.com/api/generators/${generatorId}/generate`;
-  const url = `http://localhost:3000/api/generators/${generatorId}/generate`;
+  const url = `https://skoipy.com/api/generators/${generatorId}/generate`;
   const response = await axios.post<SkoipyPlaylistResponse>(url, {apiKey: serverConfig.skoipy_api_key});
   return response.data.playlist.uri;
 }
