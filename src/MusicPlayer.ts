@@ -10,7 +10,7 @@ import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
-import { errorLogger, handleQueueRandomCommand } from "./index.js";
+import { errorLogger, handleAutoGenerateCommand, handleQueueRandomCommand } from "./index.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -32,6 +32,7 @@ class MusicPlayer {
   lastActivity: Date;
   isAutoQueue: boolean;
   autoQueueShuffle: boolean;
+  generatorId: number;
 
   constructor(
     voiceChannel: VoiceChannel,
@@ -50,6 +51,7 @@ class MusicPlayer {
     this.lastActivity = new Date();
     this.isAutoQueue = false;
     this.autoQueueShuffle = false;
+    this.generatorId = 0;
   }
   play = async (track: Track, isSkip = false) => {
     this.lastActivity = new Date();
@@ -110,11 +112,15 @@ class MusicPlayer {
     }
     if (!nextSong) {
       if (this.isAutoQueue) {
-        return await handleQueueRandomCommand(
-          this.textChannel,
-          this,
-          this.autoQueueShuffle
-        );
+        if (!!this.generatorId) {
+          return await handleAutoGenerateCommand(this.textChannel, this);
+        } else {
+          return await handleQueueRandomCommand(
+            this.textChannel,
+            this,
+            this.autoQueueShuffle
+          );
+        }
       } else {
         return this.textChannel.send(`That's the end of the queue!`);
       }

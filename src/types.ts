@@ -31,4 +31,5 @@ export enum Commands {
   AUTO_QUEUE = "auto_queue",
   SET_SKOIPY_KEY = "set_skoipy_api_key",
   GENERATE_AND_PLAY = "generate_and_play",
+  AUTO_GENERATE = "auto_generate",
 }
