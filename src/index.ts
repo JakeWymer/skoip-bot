@@ -180,6 +180,14 @@ const handleInteraction = async (interaction: any) => {
         player
       );
       break;
+    case Commands.AUTO_GENERATE:
+      player.isAutoQueue = interaction.data.options[0].value;
+      player.generatorId = interaction.data.options[1].value;
+      channel.send(`Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`);
+      if (!player.queue.length && player.isAutoQueue) {
+        await handleAutoGenerateCommand(channel, player);
+      }
+      break;
     default:
       channel.send("Command not found");
   }
@@ -213,6 +221,8 @@ export const handleQueueRandomCommand = async (
   shouldShuffle = false
 ) => {
   let generator: TrackGenerator;
+  // Reset to 0 to make sure auto generate is turned off
+  player.generatorId = 0;
   const playlist = await getRandomPlaylist(textChannel.guild.id);
   if (!playlist) {
     return textChannel.send("Could not fetch random playlist");
@@ -229,6 +239,18 @@ export const handleQueueRandomCommand = async (
     player.shuffle();
   }
 };
+
+export const handleAutoGenerateCommand = async (textChannel: TextChannel, player: MusicPlayer) => {
+  const playlistUri = await generateSkoipyPlaylist(textChannel.guild.id, player.generatorId);
+  if (!playlistUri.includes(`spotify`)) {
+    return textChannel.send("Unsupported integration");
+  }
+  player.textChannel.send(`Queuing auto generated playlist`);
+  const spotifyApi = await setupSpotifyApi();
+  const trackGenerator = new SpotifyGenerator(playlistUri, spotifyApi);
+  const tracks = await trackGenerator.generateTracks();
+  await player.appendQueue(tracks);
+}
 
 client.on("ready", () => {
   console.log("Skoipy online");

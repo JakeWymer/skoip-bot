@@ -99,6 +99,25 @@ const generateAndPlay = {
     },
   ],
 };
+const autoGenerate = {
+  name: "auto_generate",
+  description: "Auto queues Skoipy generated playlists",
+  options: [
+    {
+      type: 5,
+      name: "enabled",
+      description:
+        "Set to True if you would like to enable auto queue for this session.",
+      required: true,
+    },
+    {
+      type: 4,
+      name: "generator_id",
+      description: "ID of the generator you would like to use for playlist generation",
+      required: true,
+    },
+  ],
+}
 
 const commands = [
   random,
@@ -112,5 +131,6 @@ const commands = [
   autoQueue,
   setSkoipyKey,
   generateAndPlay,
+  autoGenerate,
 ];
 export default commands;
