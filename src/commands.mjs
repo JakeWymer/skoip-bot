@@ -89,12 +89,14 @@ const setSkoipyKey = {
 };
 const generateAndPlay = {
   name: "generate_and_play",
-  description: "Generates a new Skoipy playlist and adds the songs to the queue",
+  description:
+    "Generates a new Skoipy playlist and adds the songs to the queue",
   options: [
     {
       type: 4,
       name: "generator_id",
-      description: "ID of the generator you would like to use for playlist generation",
+      description:
+        "ID of the generator you would like to use for playlist generation",
       required: true,
     },
   ],
@@ -113,11 +115,12 @@ const autoGenerate = {
     {
       type: 4,
       name: "generator_id",
-      description: "ID of the generator you would like to use for playlist generation",
+      description:
+        "ID of the generator you would like to use for playlist generation",
       required: true,
     },
   ],
-}
+};
 
 const commands = [
   random,

@@ -22,7 +22,10 @@ export const getRandomElement = (arr: any[]) => {
   return arr[randomIndex];
 };
 
-export const generateSkoipyPlaylist = async (guildId: string, generatorId: number) => {
+export const generateSkoipyPlaylist = async (
+  guildId: string,
+  generatorId: number
+) => {
   const serverConfig = (await Server.findOne({
     where: {
       server_id: guildId,
@@ -32,9 +35,11 @@ export const generateSkoipyPlaylist = async (guildId: string, generatorId: numbe
     return null;
   }
   const url = `https://skoipy.com/api/generators/${generatorId}/generate`;
-  const response = await axios.post<SkoipyPlaylistResponse>(url, {apiKey: serverConfig.skoipy_api_key});
+  const response = await axios.post<SkoipyPlaylistResponse>(url, {
+    apiKey: serverConfig.skoipy_api_key,
+  });
   return response.data.playlist.uri;
-}
+};
 
 export const setSkoipyKey = async (
   skoipyKey: string,
