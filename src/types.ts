@@ -17,7 +17,7 @@ export type SheetResponse = {
 export type SkoipyPlaylistResponse = {
   isError: boolean;
   playlist: any;
-}
+};
 
 export enum Commands {
   PLAY = "play",

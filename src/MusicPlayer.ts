@@ -10,7 +10,11 @@ import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
-import { errorLogger, handleAutoGenerateCommand, handleQueueRandomCommand } from "./index.js";
+import {
+  errorLogger,
+  handleAutoGenerateCommand,
+  handleQueueRandomCommand,
+} from "./index.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",

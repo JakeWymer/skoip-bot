@@ -12,7 +12,13 @@ import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
 import { TrackGenerator, Commands } from "./types.js";
-import { ErrorLogger, generateSkoipyPlaylist, getRandomElement, setSkoipyKey, setupSpotifyApi } from "./util.js";
+import {
+  ErrorLogger,
+  generateSkoipyPlaylist,
+  getRandomElement,
+  setSkoipyKey,
+  setupSpotifyApi,
+} from "./util.js";
 import { EventEmitter } from "events";
 import Server from "./db/models/Server.js";
 
@@ -29,15 +35,23 @@ setInterval(() => {
   const oneHour = 60000 * 60;
   const now = new Date();
   Object.values(botServerMap).forEach((player) => {
-    const numberOfVoiceMembers = player.voiceChannel.members.size;
-    if (
-      now.getTime() - player.lastActivity.getTime() > oneHour ||
-      !numberOfVoiceMembers
-    ) {
+    if (shouldLeaveChannel(player, now, oneHour)) {
       player.leave();
     }
   });
 }, 60000);
+
+const shouldLeaveChannel = (
+  player: MusicPlayer,
+  now: Date,
+  maxIdleTime: number
+) => {
+  const numberOfVoiceMembers = player.voiceChannel.members.size;
+  return (
+    now.getTime() - player.lastActivity.getTime() > maxIdleTime ||
+    numberOfVoiceMembers === 1
+  );
+};
 
 const getJoinMessage = (member: GuildMember) => {
   const userName = member?.displayName;
@@ -174,11 +188,7 @@ const handleInteraction = async (interaction: any) => {
     case Commands.GENERATE_AND_PLAY:
       const generatorId = interaction.data.options[0].value;
       const playlistUri = await generateSkoipyPlaylist(guild.id, generatorId);
-      await handlePlayCommand(
-        playlistUri,
-        channel,
-        player
-      );
+      await handlePlayCommand(playlistUri, channel, player);
       break;
     case Commands.AUTO_GENERATE:
       player.isAutoQueue = interaction.data.options[0].value;
@@ -240,8 +250,14 @@ export const handleQueueRandomCommand = async (
   }
 };
 
-export const handleAutoGenerateCommand = async (textChannel: TextChannel, player: MusicPlayer) => {
-  const playlistUri = await generateSkoipyPlaylist(textChannel.guild.id, player.generatorId);
+export const handleAutoGenerateCommand = async (
+  textChannel: TextChannel,
+  player: MusicPlayer
+) => {
+  const playlistUri = await generateSkoipyPlaylist(
+    textChannel.guild.id,
+    player.generatorId
+  );
   if (!playlistUri.includes(`spotify`)) {
     return textChannel.send("Unsupported integration");
   }
@@ -250,7 +266,7 @@ export const handleAutoGenerateCommand = async (textChannel: TextChannel, player
   const trackGenerator = new SpotifyGenerator(playlistUri, spotifyApi);
   const tracks = await trackGenerator.generateTracks();
   await player.appendQueue(tracks);
-}
+};
 
 client.on("ready", () => {
   console.log("Skoipy online");
