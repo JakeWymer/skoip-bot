@@ -64,14 +64,10 @@ class MusicPlayer {
         this.queue.push(track);
         return;
       }
-      const trackInfo: EmbedFieldData = {
-        name: track.title,
-        value: track.artist || "unknown",
-      };
       const embed = new MessageEmbed()
         .setTitle("Now Playing")
+        .setDescription(`**${track.title}**\n${track.artist || "unknown"}`)
         .setColor(`#b7b5e4`)
-        .addFields(trackInfo);
       this.textChannel.send(embed);
       const ytId = track.spotifyId
         ? await this.getYtId(track.spotifyId)
