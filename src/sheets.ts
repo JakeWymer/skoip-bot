@@ -6,6 +6,7 @@ const getPlaylistRows = async (spreadsheetId: string) => {
   const NAME_INDEX = 0;
   const ARTIST_INDEX = 1;
   const URI_INDEX = 2;
+  const DISABLED_INDEX = 3;
   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`;
   try {
     const sheetData = await axios.get(url);
@@ -17,9 +18,12 @@ const getPlaylistRows = async (spreadsheetId: string) => {
       const table = obj.table;
       const rows = table.rows
         .map((row: any) => {
-          return { name: row.c[NAME_INDEX].v, artist: row.c[ARTIST_INDEX]?.v, uri: row.c[URI_INDEX].v };
+          return { name: row.c[NAME_INDEX].v, artist: row.c[ARTIST_INDEX]?.v, uri: row.c[URI_INDEX].v, isDisabled: row.c[DISABLED_INDEX]?.v };
         })
-        .slice(1);
+        .slice(1)
+        .filter((row: any) => {
+          return !row.isDisabled
+        });
       return rows;
     }
   } catch (err) {
