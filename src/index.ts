@@ -25,6 +25,7 @@ import Server from "./db/models/Server.js";
 import "./db/index.js";
 import axios from "axios";
 import YoutubeGenerator from "./YoutubeGenerator.js";
+import { trackEvent } from "./tracking.js";
 
 export let errorLogger: ErrorLogger;
 const client = new Client();
@@ -241,6 +242,9 @@ export const handleQueueRandomCommand = async (
     return textChannel.send("Unsupported integration");
   }
   player.textChannel.send(`Queuing ${playlist.name}`);
+  trackEvent(`Random Queued`, {
+    name: playlist.name
+  })
   const spotifyApi = await setupSpotifyApi();
   generator = new SpotifyGenerator(playlist.uri, spotifyApi);
   const tracks = await generator.generateTracks();

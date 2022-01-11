@@ -15,6 +15,7 @@ import {
   handleAutoGenerateCommand,
   handleQueueRandomCommand,
 } from "./index.js";
+import { trackEvent }  from "./tracking.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -37,6 +38,7 @@ class MusicPlayer {
   isAutoQueue: boolean;
   autoQueueShuffle: boolean;
   generatorId: number;
+  currentSong: Track | null;
 
   constructor(
     voiceChannel: VoiceChannel,
@@ -56,6 +58,7 @@ class MusicPlayer {
     this.isAutoQueue = false;
     this.autoQueueShuffle = false;
     this.generatorId = 0;
+    this.currentSong = null;
   }
   play = async (track: Track, isSkip = false) => {
     this.lastActivity = new Date();
@@ -64,6 +67,7 @@ class MusicPlayer {
         this.queue.push(track);
         return;
       }
+      this.currentSong = track;
       const embed = new MessageEmbed()
         .setTitle("Now Playing")
         .setDescription(`**${track.title}**\n${track.artist || "unknown"}`)
@@ -89,6 +93,10 @@ class MusicPlayer {
       const dispatcher = this.voiceConnection.play(stream);
       this.dispatcher = dispatcher;
       this.isPlaying = true;
+      trackEvent(`Played Song`, {
+        name: track.title,
+        artist: track.artist,
+      })
       dispatcher.on("speaking", (isSpeaking) => {
         this.isPlaying = isSpeaking;
         if (!isSpeaking) {
@@ -109,6 +117,10 @@ class MusicPlayer {
     let nextSong = this.queue.shift();
     if (isSkip) {
       this.textChannel.send(`Skoip skoip!`);
+      trackEvent(`Skipped Song`, {
+        name: this.currentSong?.title,
+        artist: this.currentSong?.artist,
+      })
     }
     if (!nextSong) {
       if (this.isAutoQueue) {
