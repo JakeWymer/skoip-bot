@@ -241,7 +241,11 @@ export const handleQueueRandomCommand = async (
   if (!playlist.uri.includes(`spotify`)) {
     return textChannel.send("Unsupported integration");
   }
-  player.textChannel.send(`Queuing ${playlist.name}`);
+  let message = `Queuing ${playlist.name}`;
+  if (playlist.artist) {
+    message += ` by ${playlist.artist}`
+  }
+  player.textChannel.send(message);
   trackEvent(`Random Queued`, {
     name: playlist.name
   })

@@ -4,7 +4,8 @@ import Server from "./db/models/Server.js";
 
 const getPlaylistRows = async (spreadsheetId: string) => {
   const NAME_INDEX = 0;
-  const URI_INDEX = 1;
+  const ARTIST_INDEX = 1;
+  const URI_INDEX = 2;
   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`;
   try {
     const sheetData = await axios.get(url);
@@ -16,7 +17,7 @@ const getPlaylistRows = async (spreadsheetId: string) => {
       const table = obj.table;
       const rows = table.rows
         .map((row: any) => {
-          return { name: row.c[NAME_INDEX].v, uri: row.c[URI_INDEX].v };
+          return { name: row.c[NAME_INDEX].v, artist: row.c[ARTIST_INDEX]?.v, uri: row.c[URI_INDEX].v };
         })
         .slice(1);
       return rows;
