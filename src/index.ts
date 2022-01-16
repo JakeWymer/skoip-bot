@@ -247,7 +247,8 @@ export const handleQueueRandomCommand = async (
   }
   player.textChannel.send(message);
   trackEvent(`Random Queued`, {
-    name: playlist.name
+    name: playlist.name,
+    artist: playlist.artist || `Unknown`
   })
   const spotifyApi = await setupSpotifyApi();
   generator = new SpotifyGenerator(playlist.uri, spotifyApi);
