@@ -6,8 +6,14 @@ import {
   TextChannel,
   GuildMember,
   VoiceChannel,
-  WSEventType,
+  Intents,
+  CommandInteraction,
+  Guild,
 } from "discord.js";
+import {
+  DiscordGatewayAdapterCreator,
+  joinVoiceChannel,
+} from "@discordjs/voice";
 import MusicPlayer from "./MusicPlayer.js";
 import SpotifyGenerator from "./SpotifyGenerator.js";
 import { getRandomPlaylist } from "./sheets.js";
@@ -23,12 +29,19 @@ import { EventEmitter } from "events";
 import Server from "./db/models/Server.js";
 
 import "./db/index.js";
-import axios from "axios";
 import YoutubeGenerator from "./YoutubeGenerator.js";
 import { trackEvent } from "./tracking.js";
+import { REST } from "@discordjs/rest";
+import { commands } from "./commands.js";
 
 export let errorLogger: ErrorLogger;
-const client = new Client();
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_VOICE_STATES,
+  ],
+});
 
 const botServerMap: { [key: string]: MusicPlayer } = {};
 
@@ -74,12 +87,12 @@ const isInServer = (guildId: string) => {
 const getPlayer = async (
   sentBy: GuildMember,
   textChannel: TextChannel,
-  guildId: string
+  guild: Guild
 ): Promise<any> => {
-  if (isInServer(guildId)) {
-    return botServerMap[guildId];
+  if (isInServer(guild.id)) {
+    return botServerMap[guild.id];
   }
-  return await joinChannelInteraction(sentBy, textChannel, guildId);
+  return await joinChannelInteraction(sentBy, textChannel, guild);
 };
 
 const leaveServer = (guildId: string) => {
@@ -106,17 +119,18 @@ const setSheetId = async (
   return channel.send(`Set sheets id to: ${sheetsId}`);
 };
 
-const joinChannelInteraction = async (
+const joinChannelInteraction = (
   sentBy: GuildMember,
   textChannel: TextChannel,
-  guildId: string
+  guild: Guild
 ) => {
   const voiceChannel = sentBy.voice.channel as VoiceChannel;
-  if (!voiceChannel) {
-    return textChannel.send("You need to be in a voice channel to play music.");
-  }
   textChannel.send(getJoinMessage(sentBy));
-  const voiceConnection = await voiceChannel.join();
+  const voiceConnection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: guild.id,
+    adapterCreator: guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
+  });
   const em = new EventEmitter();
   em.on("leave", leaveServer);
   const player = new MusicPlayer(
@@ -125,87 +139,97 @@ const joinChannelInteraction = async (
     voiceConnection,
     em
   );
-  botServerMap[guildId] = player;
+  botServerMap[guild.id] = player;
   return player;
 };
 
-const handleInteraction = async (interaction: any) => {
-  const responseURL = `https://discord.com/api/v8/interactions/${interaction.id}/${interaction.token}/callback`;
-  const guild = await client.guilds.fetch(interaction.guild_id);
-  const channel = (await client.channels.fetch(
-    interaction.channel_id
-  )) as TextChannel;
-  const user = await guild.members.fetch(interaction.member.user.id);
-  const player = await getPlayer(user, channel, guild.id);
-  switch (interaction.data.name) {
-    case Commands.QUEUE_RANDOM:
-      const shouldShuffle = interaction.data?.options
-        ? interaction.data.options[0].value
-        : false;
-      await handleQueueRandomCommand(channel, player, shouldShuffle);
-      break;
-    case Commands.SKIP:
-      player.playNext(true);
-      break;
-    case Commands.SHUFFLE:
-      player.shuffle();
-      break;
-    case Commands.CLEAR_QUEUE:
-      player.clearQueue();
-      break;
-    case Commands.SHOW_QUEUE:
-      await player.showQueue();
-      break;
-    case Commands.LEAVE:
-      await player.leave();
-      break;
-    case Commands.PLAY:
-      await handlePlayCommand(
-        interaction.data.options[0].value,
-        channel,
-        player
+const handleInteraction = async (interaction: CommandInteraction) => {
+  const channel = interaction.channel as TextChannel;
+  const member = interaction.member as GuildMember;
+  const voiceChannel = member.voice?.channel;
+  const guild = interaction.guild;
+
+  try {
+    if (!guild || !channel || !member || !voiceChannel) {
+      throw new Error(
+        `Guild, Channel, Voice Channel, and Member are all required for command interactions`
       );
-      break;
-    case Commands.SET_SHEET:
-      await setSheetId(interaction.data.options[0].value, guild.id, channel);
-      break;
-    case Commands.AUTO_QUEUE:
-      const isEnabled = interaction.data.options[0].value;
-      player.isAutoQueue = isEnabled;
-      const shouldAutoShuffle =
-        interaction.data?.options.length > 1
-          ? interaction.data.options[1].value
-          : false;
-      player.autoQueueShuffle = shouldAutoShuffle;
-      channel.send(`Auto Queue ${isEnabled ? `enabled` : `disabled`}`);
-      if (!player.queue.length && isEnabled) {
-        await handleQueueRandomCommand(channel, player, shouldAutoShuffle);
-      }
-      break;
-    case Commands.SET_SKOIPY_KEY:
-      const apiKey = interaction.data.options[0].value;
-      await setSkoipyKey(apiKey, guild.id, channel);
-      break;
-    case Commands.GENERATE_AND_PLAY:
-      const generatorId = interaction.data.options[0].value;
-      const playlistUri = await generateSkoipyPlaylist(guild.id, generatorId);
-      await handlePlayCommand(playlistUri, channel, player);
-      break;
-    case Commands.AUTO_GENERATE:
-      player.isAutoQueue = interaction.data.options[0].value;
-      player.generatorId = interaction.data.options[1].value;
-      channel.send(`Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`);
-      if (!player.queue.length && player.isAutoQueue) {
-        await handleAutoGenerateCommand(channel, player);
-      }
-      break;
-    default:
-      channel.send("Command not found");
+    }
+    await interaction.deferReply();
+    const { commandName, options } = interaction;
+    const player = await getPlayer(member, channel, guild);
+    switch (commandName) {
+      case Commands.QUEUE_RANDOM:
+        const shouldShuffle = options.getBoolean(`shuffle`, false) || false;
+        await handleQueueRandomCommand(channel, player, shouldShuffle);
+        break;
+      case Commands.SKIP:
+        player.playNext(true);
+        break;
+      case Commands.SHUFFLE:
+        player.shuffle();
+        break;
+      case Commands.CLEAR_QUEUE:
+        player.clearQueue();
+        break;
+      case Commands.SHOW_QUEUE:
+        await player.showQueue();
+        break;
+      case Commands.LEAVE:
+        await player.leave();
+        break;
+      case Commands.PLAY:
+        await handlePlayCommand(
+          options.getString(`url`, true),
+          channel,
+          player
+        );
+        break;
+      case Commands.SET_SHEET:
+        await setSheetId(options.getString(`id`, true), guild.id, channel);
+        break;
+      case Commands.AUTO_QUEUE:
+        player.isAutoQueue = options.getBoolean(`enabled`, true);
+        player.autoQueueShuffle = options.getBoolean(`shuffle`, false) || false;
+        channel.send(
+          `Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`
+        );
+        if (!player.queue.length && player.isAutoQueue) {
+          await handleQueueRandomCommand(
+            channel,
+            player,
+            player.autoQueueShuffle
+          );
+        }
+        break;
+      case Commands.SET_SKOIPY_KEY:
+        const apiKey = options.getString(`skoipy_api_key`, true);
+        await setSkoipyKey(apiKey, guild.id, channel);
+        break;
+      case Commands.GENERATE_AND_PLAY:
+        const generatorId = options.getInteger(`generator_id`, true);
+        const playlistUri = await generateSkoipyPlaylist(guild.id, generatorId);
+        await handlePlayCommand(playlistUri, channel, player);
+        break;
+      case Commands.AUTO_GENERATE:
+        player.isAutoQueue = options.getBoolean(`enabled`, true);
+        player.generatorId = options.getInteger(`generator_id`, true);
+        channel.send(
+          `Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`
+        );
+        if (!player.queue.length && player.isAutoQueue) {
+          await handleAutoGenerateCommand(channel, player);
+        }
+        break;
+      default:
+        throw new Error(`Command not found`);
+    }
+    return interaction.editReply({ content: `Woohooo` });
+  } catch (err) {
+    console.log(err);
+    errorLogger.log(JSON.stringify(err));
+    return interaction.editReply({ content: `Something went wrong :(` });
   }
-  await axios.post(responseURL, {
-    type: 4,
-    data: { content: "Woohooo" },
-  });
 };
 
 const handlePlayCommand = async (
@@ -243,13 +267,13 @@ export const handleQueueRandomCommand = async (
   }
   let message = `Queuing ${playlist.name}`;
   if (playlist.artist) {
-    message += ` by ${playlist.artist}`
+    message += ` by ${playlist.artist}`;
   }
   player.textChannel.send(message);
   trackEvent(`Random Queued`, {
     name: playlist.name,
-    artist: playlist.artist || `Unknown`
-  })
+    artist: playlist.artist || `Unknown`,
+  });
   const spotifyApi = await setupSpotifyApi();
   generator = new SpotifyGenerator(playlist.uri, spotifyApi);
   const tracks = await generator.generateTracks();
@@ -277,16 +301,24 @@ export const handleAutoGenerateCommand = async (
   await player.appendQueue(tracks);
 };
 
-client.on("ready", () => {
+client.on("ready", async () => {
   console.log("Skoipy online");
-  client.channels
-    .fetch(process.env.ERROR_CHANNEL_ID as string)
-    .then((channel) => {
-      errorLogger = new ErrorLogger(channel as TextChannel);
-    })
-    .catch(console.error);
+
+  const rest = new REST({ version: "9" }).setToken(process.env.BOT_TOKEN || ``);
+  try {
+    console.log("Started refreshing application (/) commands.");
+    const slashCommandsUrl = process.env.SLASH_COMMANDS_URL || ``;
+    await rest.put(`/${slashCommandsUrl}`, { body: commands });
+
+    console.log("Successfully reloaded application (/) commands.");
+  } catch (error) {
+    console.error(error);
+  }
 });
 
-const interactionEvent = "INTERACTION_CREATE" as WSEventType;
-client.ws.on(interactionEvent, handleInteraction);
+client.on(`interactionCreate`, async (interaction) => {
+  if (!interaction.isCommand()) return;
+  await handleInteraction(interaction);
+});
+
 client.login(process.env.BOT_TOKEN || ``);

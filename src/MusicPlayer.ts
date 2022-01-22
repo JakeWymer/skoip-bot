@@ -1,6 +1,5 @@
 import {
   TextChannel,
-  VoiceConnection,
   MessageEmbed,
   EmbedFieldData,
   VoiceChannel,
@@ -15,7 +14,14 @@ import {
   handleAutoGenerateCommand,
   handleQueueRandomCommand,
 } from "./index.js";
-import { trackEvent }  from "./tracking.js";
+import { trackEvent } from "./tracking.js";
+import {
+  AudioPlayer,
+  AudioPlayerStatus,
+  createAudioPlayer,
+  createAudioResource,
+  VoiceConnection,
+} from "@discordjs/voice";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -31,7 +37,7 @@ class MusicPlayer {
   isPlaying: boolean;
   currentQueueIndex: number;
   textChannel: TextChannel;
-  dispatcher: any;
+  audioPlayer: AudioPlayer;
   voiceChannel: VoiceChannel;
   em: EventEmitter;
   lastActivity: Date;
@@ -51,7 +57,7 @@ class MusicPlayer {
     this.queue = [];
     this.currentQueueIndex = 0;
     this.isPlaying = false;
-    this.dispatcher = null;
+    this.audioPlayer = createAudioPlayer();
     this.voiceChannel = voiceChannel;
     this.em = em;
     this.lastActivity = new Date();
@@ -59,6 +65,8 @@ class MusicPlayer {
     this.autoQueueShuffle = false;
     this.generatorId = 0;
     this.currentSong = null;
+
+    this.voiceConnection.subscribe(this.audioPlayer);
   }
   play = async (track: Track, isSkip = false) => {
     this.lastActivity = new Date();
@@ -71,8 +79,8 @@ class MusicPlayer {
       const embed = new MessageEmbed()
         .setTitle("Now Playing")
         .setDescription(`**${track.title}**\n${track.artist || "unknown"}`)
-        .setColor(`#b7b5e4`)
-      this.textChannel.send(embed);
+        .setColor(`#b7b5e4`);
+      this.textChannel.send({ embeds: [embed] });
       const ytId = track.spotifyId
         ? await this.getYtId(track.spotifyId)
         : track.ytId;
@@ -90,27 +98,33 @@ class MusicPlayer {
         quality: "highestaudio",
         highWaterMark: 1024 * 1024 * 32,
       });
-      const dispatcher = this.voiceConnection.play(stream);
-      this.dispatcher = dispatcher;
+      const audioResource = createAudioResource(stream);
+      this.audioPlayer.play(audioResource);
       this.isPlaying = true;
       trackEvent(`Played Song`, {
         name: track.title,
         artist: track.artist,
-      })
-      dispatcher.on("speaking", (isSpeaking) => {
-        this.isPlaying = isSpeaking;
-        if (!isSpeaking) {
+      });
+      this.audioPlayer.on(`stateChange`, (oldState, newState) => {
+        // Audio resource finished playing
+        if (
+          newState.status === AudioPlayerStatus.Idle &&
+          oldState.status !== AudioPlayerStatus.Idle
+        ) {
+          this.isPlaying = false;
           this.playNext();
+        } else if (newState.status === AudioPlayerStatus.Playing) {
+          this.isPlaying = true;
         }
       });
-      dispatcher.on("error", (err) => {
+      this.audioPlayer.on(`error`, (err) => {
         console.error(err);
         errorLogger.log(JSON.stringify(err));
+        this.isPlaying = false;
         this.playNext();
       });
     } catch (err: unknown) {
       console.error(err);
-      errorLogger.log(JSON.stringify(err));
     }
   };
   playNext = async (isSkip = false) => {
@@ -120,7 +134,7 @@ class MusicPlayer {
       trackEvent(`Skipped Song`, {
         name: this.currentSong?.title,
         artist: this.currentSong?.artist,
-      })
+      });
     }
     if (!nextSong) {
       if (this.isAutoQueue) {
@@ -156,9 +170,11 @@ class MusicPlayer {
   clearQueue() {
     this.queue = [];
     this.stop();
+    this.playNext();
   }
   stop() {
-    this.dispatcher.pause();
+    this.audioPlayer.pause();
+    this.isPlaying = false;
   }
   showQueue = () => {
     const embed = new MessageEmbed().setTitle("Your Queue").setColor(`#b7b5e4`);
@@ -171,10 +187,10 @@ class MusicPlayer {
       return field;
     });
     embed.addFields(...trackFields);
-    this.textChannel.send(embed);
+    this.textChannel.send({ embeds: [embed] });
   };
   leave() {
-    this.voiceChannel.leave();
+    this.voiceConnection.disconnect();
     this.textChannel.send(getRandomElement(serverLeaveMessages));
     const guildId = this.textChannel.guild.id;
     this.em.emit("leave", guildId);

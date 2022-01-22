@@ -1,9 +1,11 @@
+import { ApplicationCommandOptionTypes } from "discord.js/typings/enums";
+
 const random = {
   name: "random",
   description: "Queues a random playlist from Google sheets",
   options: [
     {
-      type: 5,
+      type: ApplicationCommandOptionTypes.BOOLEAN,
       name: "shuffle",
       description: "Shuffle the playlist after queuing",
       required: false,
@@ -19,7 +21,7 @@ const play = {
   description: "Queue songs from specified URL",
   options: [
     {
-      type: 3,
+      type: ApplicationCommandOptionTypes.STRING,
       name: "url",
       description: "Song or album URL",
       required: true,
@@ -47,7 +49,7 @@ const setSheet = {
   description: "Sets the Google sheet used by the Random command",
   options: [
     {
-      type: 3,
+      type: ApplicationCommandOptionTypes.STRING,
       name: "id",
       description: "ID of the Google sheet being used",
       required: true,
@@ -60,14 +62,14 @@ const autoQueue = {
     "When turned on, Skoipy will automatically queue up a playlist from your Google Sheet.",
   options: [
     {
-      type: 5,
+      type: ApplicationCommandOptionTypes.BOOLEAN,
       name: "enabled",
       description:
         "Set to True if you would like to enable auto queue for this session.",
       required: true,
     },
     {
-      type: 5,
+      type: ApplicationCommandOptionTypes.BOOLEAN,
       name: "shuffle",
       description:
         "Set to True if you would like to shuffle every playlist auto queued for this session.",
@@ -80,7 +82,7 @@ const setSkoipyKey = {
   description: "Sets the API key used to generate Skoipy playlists",
   options: [
     {
-      type: 3,
+      type: ApplicationCommandOptionTypes.STRING,
       name: "skoipy_api_key",
       description: "Your Skoipy API key",
       required: true,
@@ -93,7 +95,7 @@ const generateAndPlay = {
     "Generates a new Skoipy playlist and adds the songs to the queue",
   options: [
     {
-      type: 4,
+      type: ApplicationCommandOptionTypes.INTEGER,
       name: "generator_id",
       description:
         "ID of the generator you would like to use for playlist generation",
@@ -106,14 +108,14 @@ const autoGenerate = {
   description: "Auto queues Skoipy generated playlists",
   options: [
     {
-      type: 5,
+      type: ApplicationCommandOptionTypes.BOOLEAN,
       name: "enabled",
       description:
         "Set to True if you would like to enable auto queue for this session.",
       required: true,
     },
     {
-      type: 4,
+      type: ApplicationCommandOptionTypes.INTEGER,
       name: "generator_id",
       description:
         "ID of the generator you would like to use for playlist generation",
@@ -122,7 +124,7 @@ const autoGenerate = {
   ],
 };
 
-const commands = [
+export const commands = [
   random,
   skip,
   play,
@@ -136,4 +138,3 @@ const commands = [
   generateAndPlay,
   autoGenerate,
 ];
-export default commands;
