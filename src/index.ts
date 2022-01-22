@@ -9,6 +9,7 @@ import {
   Intents,
   CommandInteraction,
   Guild,
+  Message,
 } from "discord.js";
 import {
   DiscordGatewayAdapterCreator,
@@ -42,6 +43,8 @@ const client = new Client({
     Intents.FLAGS.GUILD_VOICE_STATES,
   ],
 });
+
+const BOT_PREFIX = `>`;
 
 const botServerMap: { [key: string]: MusicPlayer } = {};
 
@@ -241,6 +244,21 @@ const handleInteraction = async (interaction: CommandInteraction) => {
   }
 };
 
+const handleBotMessage = async (message: Message) => {
+  const channel = message.channel as TextChannel;
+  const member = message.member as GuildMember;
+  const guild = message.guild as Guild;
+  const player = (await getPlayer(member, channel, guild)) as MusicPlayer;
+  const parsedMessage = message.content.substring(1);
+  switch (parsedMessage) {
+    case Commands.SKIP:
+      player.playNext(true);
+      break;
+    default:
+      channel.send(`Bot command not supported`);
+  }
+};
+
 const handlePlayCommand = async (
   url: string,
   channel: TextChannel,
@@ -323,6 +341,11 @@ client.on("ready", async () => {
   } catch (error) {
     console.error(error);
   }
+});
+
+client.on(`messageCreate`, async (message) => {
+  if (!message.author.bot || message.content[0] !== BOT_PREFIX) return;
+  await handleBotMessage(message);
 });
 
 client.on(`interactionCreate`, async (interaction) => {
