@@ -123,6 +123,18 @@ const autoGenerate = {
     },
   ],
 };
+const setOverrideId = {
+  name: "set_override_sheet",
+  description: "Sets the Google Sheet id to check for any URL overrides",
+  options: [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "override_sheet_id",
+      description: "Your override Google Sheet id",
+      required: true,
+    },
+  ],
+};
 
 export const commands = [
   random,
@@ -137,4 +149,5 @@ export const commands = [
   setSkoipyKey,
   generateAndPlay,
   autoGenerate,
+  setOverrideId,
 ];

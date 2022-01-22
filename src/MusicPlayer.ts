@@ -22,6 +22,7 @@ import {
   createAudioResource,
   VoiceConnection,
 } from "@discordjs/voice";
+import { getUrlOverride } from "./sheets.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -196,10 +197,28 @@ class MusicPlayer {
     this.em.emit("leave", guildId);
   }
   getYtId = async (spotifyId: string) => {
+    const spotifyIdOrOverrideUrl = await getUrlOverride(
+      this.textChannel.guild.id,
+      spotifyId
+    );
+    // If we hit this, it's a YT override
+    if (spotifyId !== spotifyIdOrOverrideUrl) {
+      this.textChannel.send(`URL override found`);
+      return this.parseYtUrl(spotifyIdOrOverrideUrl);
+    }
+    // Else it's the normal Spotify id we need to convert to a YT id
     const spotifyApi = await setupSpotifyApi();
     const spotifyToYoutube = SpotifyToYoutube(spotifyApi);
-    const ytId: string = await spotifyToYoutube(spotifyId);
+    const ytId: string = await spotifyToYoutube(spotifyIdOrOverrideUrl);
     return ytId;
+  };
+  parseYtUrl = (url: string) => {
+    const trackId = ytdl.getURLVideoID(url);
+    if (trackId) {
+      return trackId;
+    } else {
+      throw Error(`Invalid YouTube URL`);
+    }
   };
   getYtLength = async (youtubeId: string): Promise<number> => {
     const metaData = await ytdl.getBasicInfo(
