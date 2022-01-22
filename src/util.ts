@@ -41,11 +41,7 @@ export const generateSkoipyPlaylist = async (
   return response.data.playlist.uri;
 };
 
-export const setSkoipyKey = async (
-  skoipyKey: string,
-  guildId: string,
-  channel: TextChannel
-) => {
+export const getOrCreateServerConfig = async (guildId: string) => {
   let serverConfig = (await Server.findOne({
     where: {
       server_id: guildId,
@@ -56,6 +52,26 @@ export const setSkoipyKey = async (
       server_id: guildId,
     });
   }
+  return serverConfig;
+};
+
+export const setSkoipyKey = async (
+  skoipyKey: string,
+  guildId: string,
+  channel: TextChannel
+) => {
+  const serverConfig = await getOrCreateServerConfig(guildId);
+  serverConfig.skoipy_api_key = skoipyKey;
+  serverConfig.save();
+  return channel.send(`Set Skoipy API key`);
+};
+
+export const setOverrideSheet = async (
+  skoipyKey: string,
+  guildId: string,
+  channel: TextChannel
+) => {
+  const serverConfig = await getOrCreateServerConfig(guildId);
   serverConfig.skoipy_api_key = skoipyKey;
   serverConfig.save();
   return channel.send(`Set Skoipy API key`);

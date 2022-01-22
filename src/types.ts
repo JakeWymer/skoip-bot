@@ -28,6 +28,7 @@ export enum Commands {
   SHOW_QUEUE = "queue",
   LEAVE = "leave",
   SET_SHEET = "set_sheet_id",
+  SET_OVERRIDE_SHEET = "set_override_sheet",
   AUTO_QUEUE = "auto_queue",
   SET_SKOIPY_KEY = "set_skoipy_api_key",
   GENERATE_AND_PLAY = "generate_and_play",

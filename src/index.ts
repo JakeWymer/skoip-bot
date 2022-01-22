@@ -21,12 +21,12 @@ import { TrackGenerator, Commands } from "./types.js";
 import {
   ErrorLogger,
   generateSkoipyPlaylist,
+  getOrCreateServerConfig,
   getRandomElement,
   setSkoipyKey,
   setupSpotifyApi,
 } from "./util.js";
 import { EventEmitter } from "events";
-import Server from "./db/models/Server.js";
 
 import "./db/index.js";
 import YoutubeGenerator from "./YoutubeGenerator.js";
@@ -104,22 +104,24 @@ const setSheetId = async (
   guildId: string,
   channel: TextChannel
 ) => {
-  let serverConfig = (await Server.findOne({
-    where: {
-      server_id: guildId,
-    },
-  })) as any;
-  if (!serverConfig) {
-    serverConfig = await Server.create({
-      server_id: guildId,
-    });
-  }
+  const serverConfig = await getOrCreateServerConfig(guildId);
   serverConfig.sheets_id = sheetsId;
   serverConfig.save();
   return channel.send(`Set sheets id to: ${sheetsId}`);
 };
 
-const joinChannelInteraction = (
+const setOverrideSheetId = async (
+  overrideSheetId: string,
+  guildId: string,
+  channel: TextChannel
+) => {
+  const serverConfig = await getOrCreateServerConfig(guildId);
+  serverConfig.override_id = overrideSheetId;
+  serverConfig.save();
+  return channel.send(`Set override sheet id to: ${overrideSheetId}`);
+};
+
+const joinChannelInteraction = async (
   sentBy: GuildMember,
   textChannel: TextChannel,
   guild: Guild
@@ -187,6 +189,13 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         break;
       case Commands.SET_SHEET:
         await setSheetId(options.getString(`id`, true), guild.id, channel);
+        break;
+      case Commands.SET_OVERRIDE_SHEET:
+        await setOverrideSheetId(
+          options.getString(`override_sheet_id`, true),
+          guild.id,
+          channel
+        );
         break;
       case Commands.AUTO_QUEUE:
         player.isAutoQueue = options.getBoolean(`enabled`, true);

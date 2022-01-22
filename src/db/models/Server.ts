@@ -14,7 +14,10 @@ const Server = db.define(
     },
     skoipy_api_key: {
       type: DataTypes.STRING,
-    }
+    },
+    override_id: {
+      type: DataTypes.STRING,
+    },
   },
   {
     tableName: `server_config`,
