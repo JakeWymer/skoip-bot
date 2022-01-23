@@ -110,17 +110,14 @@ class MusicPlayer {
         // Audio resource finished playing
         if (
           newState.status === AudioPlayerStatus.Idle &&
-          oldState.status !== AudioPlayerStatus.Idle
+          oldState.status === AudioPlayerStatus.Playing
         ) {
-          this.isPlaying = false;
+          this.stop();
           this.playNext();
-        } else if (newState.status === AudioPlayerStatus.Playing) {
-          this.isPlaying = true;
         }
       });
       this.audioPlayer.on(`error`, (err) => {
         console.error(err);
-        errorLogger.log(JSON.stringify(err));
         this.isPlaying = false;
         this.playNext();
       });

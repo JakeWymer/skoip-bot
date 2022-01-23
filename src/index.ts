@@ -239,7 +239,6 @@ const handleInteraction = async (interaction: CommandInteraction) => {
     return interaction.editReply({ content: `Woohooo` });
   } catch (err) {
     console.log(err);
-    errorLogger.log(JSON.stringify(err));
     return interaction.editReply({ content: `Something went wrong :(` });
   }
 };
