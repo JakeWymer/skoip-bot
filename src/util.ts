@@ -2,7 +2,9 @@ import axios from "axios";
 import { TextChannel } from "discord.js";
 import SpotifyWebApi from "spotify-web-api-node";
 import Server from "./db/models/Server.js";
+import SpotifyGenerator from "./SpotifyGenerator.js";
 import { SkoipyPlaylistResponse } from "./types";
+import YoutubeGenerator from "./YoutubeGenerator.js";
 
 export const setupSpotifyApi = async (): Promise<SpotifyWebApi> => {
   const spotifyApi = new SpotifyWebApi({
@@ -75,6 +77,19 @@ export const setOverrideSheet = async (
   serverConfig.skoipy_api_key = skoipyKey;
   serverConfig.save();
   return channel.send(`Set Skoipy API key`);
+};
+
+export const getTrackGenerator = async (url: string) => {
+  let generator;
+  if (url.includes(`spotify`)) {
+    const spotifyApi = await setupSpotifyApi();
+    generator = new SpotifyGenerator(url, spotifyApi);
+  } else if (url.includes("youtube")) {
+    generator = new YoutubeGenerator(url);
+  } else {
+    throw new Error(`Unsupported integration`);
+  }
+  return generator;
 };
 
 export class ErrorLogger {

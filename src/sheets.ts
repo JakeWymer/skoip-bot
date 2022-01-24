@@ -51,6 +51,9 @@ export const getUrlOverride = async (guildId: string, spotifyId: string) => {
   const OVERRIDE_INDEX = 1;
   try {
     const serverConfig = await getOrCreateServerConfig(guildId);
+    if (!serverConfig.override_id) {
+      return spotifyId;
+    }
     const overrideRows = await fetchSpreadsheetData(serverConfig.override_id);
     const overrideUrlRow = overrideRows.find(
       (row: any) => row.c[ID_INDEX].v === spotifyId
