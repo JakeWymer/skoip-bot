@@ -9,11 +9,6 @@ import SpotifyToYoutube from "spotify-to-youtube";
 import { Track } from "./types.js";
 import { getRandomElement, setupSpotifyApi } from "./util.js";
 import { EventEmitter } from "events";
-import {
-  errorLogger,
-  handleAutoGenerateCommand,
-  handleQueueRandomCommand,
-} from "./index.js";
 import { trackEvent } from "./tracking.js";
 import {
   AudioPlayer,
@@ -23,6 +18,8 @@ import {
   VoiceConnection,
 } from "@discordjs/voice";
 import { getUrlOverride } from "./sheets.js";
+import handleQueueRandomCommand from "./commands/random.js";
+import handleAutoGenerateCommand from "./commands/autoGenerate.js";
 
 const serverLeaveMessages = [
   "See ya next time..! ;)",
@@ -35,7 +32,6 @@ const serverLeaveMessages = [
 class MusicPlayer {
   voiceConnection: VoiceConnection;
   queue: Track[];
-  isPlaying: boolean;
   currentQueueIndex: number;
   textChannel: TextChannel;
   audioPlayer: AudioPlayer;
@@ -57,7 +53,6 @@ class MusicPlayer {
     this.textChannel = textChannel;
     this.queue = [];
     this.currentQueueIndex = 0;
-    this.isPlaying = false;
     this.audioPlayer = createAudioPlayer();
     this.voiceChannel = voiceChannel;
     this.em = em;
@@ -68,63 +63,80 @@ class MusicPlayer {
     this.currentSong = null;
 
     this.voiceConnection.subscribe(this.audioPlayer);
+
+    this.audioPlayer.on(`stateChange`, (oldState, newState) => {
+      // Audio resource finished playing
+      if (
+        newState.status === AudioPlayerStatus.Idle &&
+        oldState.status === AudioPlayerStatus.Playing
+      ) {
+        this.stop();
+        this.playNext();
+      }
+    });
+
+    this.audioPlayer.on(`error`, (err) => {
+      console.error(err);
+      this.playNext();
+    });
   }
+
   play = async (track: Track, isSkip = false) => {
     this.lastActivity = new Date();
     try {
-      if (this.isPlaying && !isSkip) {
+      if (this.isPlaying() && !isSkip) {
         this.queue.push(track);
         return;
       }
+
       this.currentSong = track;
-      const embed = new MessageEmbed()
-        .setTitle("Now Playing")
-        .setDescription(`**${track.title}**\n${track.artist || "unknown"}`)
-        .setColor(`#b7b5e4`);
+      const embed = this.buildNowPlayingEmbed(track);
       this.textChannel.send({ embeds: [embed] });
       const ytId = track.spotifyId
         ? await this.getYtId(track.spotifyId)
         : track.ytId;
+
+      // We can't play a song that doesn't have a matching YT video
       if (!ytId) {
         this.textChannel.send(`No matching YouTube videos found`);
         return this.playNext();
       }
+
+      // We don't want to queue something longer than 15 mins
       const videoLength = await this.getYtLength(ytId);
       if (videoLength > 900) {
         this.textChannel.send(`Cannot play content longer than 15 minutes`);
         return this.playNext();
       }
-      const stream = await ytdl(ytId, {
-        filter: "audio",
-        quality: "highestaudio",
-        highWaterMark: 1024 * 1024 * 32,
-      });
+
+      const stream = await this.fetchYtStream(ytId);
       const audioResource = createAudioResource(stream);
       this.audioPlayer.play(audioResource);
-      this.isPlaying = true;
+
       trackEvent(`Played Song`, {
         name: track.title,
         artist: track.artist,
-      });
-      this.audioPlayer.on(`stateChange`, (oldState, newState) => {
-        // Audio resource finished playing
-        if (
-          newState.status === AudioPlayerStatus.Idle &&
-          oldState.status === AudioPlayerStatus.Playing
-        ) {
-          this.stop();
-          this.playNext();
-        }
-      });
-      this.audioPlayer.on(`error`, (err) => {
-        console.error(err);
-        this.isPlaying = false;
-        this.playNext();
       });
     } catch (err: unknown) {
       console.error(err);
     }
   };
+
+  private fetchYtStream = async (ytId: string) => {
+    return await ytdl(ytId, {
+      filter: "audio",
+      quality: "highestaudio",
+      highWaterMark: 1024 * 1024 * 32,
+    });
+  };
+
+  private buildNowPlayingEmbed = (track: Track) => {
+    return new MessageEmbed()
+      .setTitle("Now Playing")
+      .setDescription(`**${track.title}**\n${track.artist || "unknown"}`)
+      .setColor(`#b7b5e4`);
+  };
+
   playNext = async (isSkip = false) => {
     let nextSong = this.queue.shift();
     if (isSkip) {
@@ -151,13 +163,18 @@ class MusicPlayer {
     }
     this.play(nextSong, isSkip);
   };
-  appendQueue(tracks: Track[]) {
+
+  appendQueue(tracks: Track[], shouldShuffle = false) {
     this.queue = [...this.queue, ...tracks];
     this.textChannel.send(`${tracks.length} songs added to the queue...`);
-    if (!this.isPlaying) {
+    if (shouldShuffle) {
+      this.shuffle();
+    }
+    if (!this.isPlaying()) {
       this.playNext();
     }
   }
+
   shuffle() {
     for (let i = this.queue.length - 1; i > 0; i--) {
       let j = Math.floor(Math.random() * (i + 1));
@@ -165,15 +182,17 @@ class MusicPlayer {
     }
     this.textChannel.send(`Shuffled!`);
   }
+
   clearQueue() {
     this.queue = [];
     this.stop();
     this.playNext();
   }
+
   stop() {
-    this.audioPlayer.pause();
-    this.isPlaying = false;
+    this.audioPlayer.stop();
   }
+
   showQueue = () => {
     const embed = new MessageEmbed().setTitle("Your Queue").setColor(`#b7b5e4`);
     const trackFields: EmbedFieldData[] = this.queue.map((track, i) => {
@@ -187,13 +206,15 @@ class MusicPlayer {
     embed.addFields(...trackFields);
     this.textChannel.send({ embeds: [embed] });
   };
+
   leave() {
     this.voiceConnection.disconnect();
     this.textChannel.send(getRandomElement(serverLeaveMessages));
     const guildId = this.textChannel.guild.id;
     this.em.emit("leave", guildId);
   }
-  getYtId = async (spotifyId: string) => {
+
+  private getYtId = async (spotifyId: string) => {
     const spotifyIdOrOverrideUrl = await getUrlOverride(
       this.textChannel.guild.id,
       spotifyId
@@ -209,7 +230,8 @@ class MusicPlayer {
     const ytId: string = await spotifyToYoutube(spotifyIdOrOverrideUrl);
     return ytId;
   };
-  parseYtUrl = (url: string) => {
+
+  private parseYtUrl = (url: string) => {
     const trackId = ytdl.getURLVideoID(url);
     if (trackId) {
       return trackId;
@@ -217,11 +239,19 @@ class MusicPlayer {
       throw Error(`Invalid YouTube URL`);
     }
   };
-  getYtLength = async (youtubeId: string): Promise<number> => {
+
+  private getYtLength = async (youtubeId: string): Promise<number> => {
     const metaData = await ytdl.getBasicInfo(
       `https://www.youtube.com/watch?v=${youtubeId}`
     );
     return parseInt(metaData.videoDetails.lengthSeconds);
+  };
+
+  isPlaying = () => {
+    return (
+      this.audioPlayer.state.status === AudioPlayerStatus.Playing ||
+      this.audioPlayer.state.status === AudioPlayerStatus.Buffering
+    );
   };
 }
 export default MusicPlayer;
