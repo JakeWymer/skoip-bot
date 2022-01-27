@@ -186,7 +186,6 @@ class MusicPlayer {
   clearQueue() {
     this.queue = [];
     this.stop();
-    this.playNext();
   }
 
   stop() {
