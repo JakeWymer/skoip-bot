@@ -20,7 +20,7 @@ const handleQueueRandomCommand = async (
   trackEvent(`Random Queued`, {
     name: playlist.name,
     artist: playlist.artist || `Unknown`,
-    "Discord Server Id": textChannel.guild.id,
+    $distinct_id: textChannel.guild.id,
   });
   const trackGenerator = await getTrackGenerator(playlist.uri);
   const tracks = await trackGenerator.generateTracks();
