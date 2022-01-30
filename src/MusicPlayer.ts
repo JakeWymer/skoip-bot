@@ -116,7 +116,7 @@ class MusicPlayer {
       trackEvent(`Played Song`, {
         name: track.title,
         artist: track.artist,
-        "Discord Server Id": this.textChannel.guild.id,
+        $distinct_id: this.textChannel.guild.id,
       });
     } catch (err: unknown) {
       console.error(err);
@@ -145,7 +145,7 @@ class MusicPlayer {
       trackEvent(`Skipped Song`, {
         name: this.currentSong?.title,
         artist: this.currentSong?.artist,
-        "Discord Server Id": this.textChannel.guild.id,
+        $distinct_id: this.textChannel.guild.id,
       });
     }
     if (!nextSong) {
