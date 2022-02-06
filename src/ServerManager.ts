@@ -1,40 +1,34 @@
-import {
-  DiscordGatewayAdapterCreator,
-  joinVoiceChannel,
-} from "@discordjs/voice";
 import { Guild, GuildMember, TextChannel, VoiceChannel } from "discord.js";
-import { EventEmitter } from "events";
-import MusicPlayer from "./MusicPlayer.js";
 import { getRandomElement } from "./util.js";
+import { Player } from "@discordx/music";
+import SkoipyQueue from "./SkoipyQueue.js";
 
 class ServerManager {
-  playerGuildMap: { [key: string]: MusicPlayer } = {};
+  queueGuildMap: { [key: string]: SkoipyQueue } = {};
 
   constructor() {
     setInterval(() => {
-      const oneHour = 60000 * 60;
-      const now = new Date();
-      Object.values(this.playerGuildMap).forEach((player) => {
-        if (this.shouldLeaveChannel(player, now, oneHour)) {
-          player.leave();
+      Object.values(this.queueGuildMap).forEach((queue) => {
+        if (this.shouldLeaveChannel(queue)) {
+          this.leaveServer(queue);
         }
       });
     }, 60000);
   }
 
-  getOrCreatePlayer = async (
+  getOrCreateQueue = async (
     user: GuildMember,
     textChannel: TextChannel,
     guild: Guild
-  ): Promise<any> => {
+  ): Promise<SkoipyQueue> => {
     if (this.isInServer(guild.id)) {
-      return this.playerGuildMap[guild.id];
+      return this.queueGuildMap[guild.id];
     }
     return await this.joinChannelInteraction(user, textChannel, guild);
   };
 
   private isInServer = (guildId: string) => {
-    return this.playerGuildMap[guildId];
+    return this.queueGuildMap[guildId];
   };
 
   private joinChannelInteraction = async (
@@ -42,23 +36,16 @@ class ServerManager {
     textChannel: TextChannel,
     guild: Guild
   ) => {
+    const player = new Player();
     const voiceChannel = user.voice.channel as VoiceChannel;
-    textChannel.send(this.getJoinMessage(user));
-    const voiceConnection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: guild.id,
-      adapterCreator: guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
-    });
-    const em = new EventEmitter();
-    em.on("leave", this.leaveServer);
-    const player = new MusicPlayer(
-      voiceChannel,
-      textChannel,
-      voiceConnection,
-      em
+    const queue = player.queue(
+      guild,
+      () => new SkoipyQueue(player, guild, voiceChannel, textChannel)
     );
-    this.playerGuildMap[guild.id] = player;
-    return player;
+    await queue.join(voiceChannel);
+    textChannel.send(this.getJoinMessage(user));
+    this.queueGuildMap[guild.id] = queue;
+    return queue;
   };
 
   private getJoinMessage = (member: GuildMember) => {
@@ -73,20 +60,14 @@ class ServerManager {
     return getRandomElement(serverJoinMessages);
   };
 
-  private shouldLeaveChannel = (
-    player: MusicPlayer,
-    now: Date,
-    maxIdleTime: number
-  ) => {
-    const numberOfVoiceMembers = player.voiceChannel.members.size;
-    return (
-      now.getTime() - player.lastActivity.getTime() > maxIdleTime ||
-      numberOfVoiceMembers === 1
-    );
+  private shouldLeaveChannel = (queue: SkoipyQueue) => {
+    const numberOfVoiceMembers = queue.voiceChannel.members.size;
+    return !numberOfVoiceMembers;
   };
 
-  private leaveServer = (guildId: string) => {
-    delete this.playerGuildMap[guildId];
+  private leaveServer = (queue: SkoipyQueue) => {
+    delete this.queueGuildMap[queue.guild.id];
+    queue.leave();
   };
 }
 

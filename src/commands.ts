@@ -28,6 +28,18 @@ const play = {
     },
   ],
 };
+const playNext = {
+  name: "play_next",
+  description: "Add songs from specified URL to the front of the queue.",
+  options: [
+    {
+      type: ApplicationCommandOptionTypes.STRING,
+      name: "url",
+      description: "Song or album URL",
+      required: true,
+    },
+  ],
+};
 const shuffle = {
   name: "shuffle",
   description: "Shuffles the current queue",

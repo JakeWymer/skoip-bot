@@ -1,18 +1,13 @@
-import { TextChannel } from "discord.js";
-import MusicPlayer from "../MusicPlayer.js";
+import SkoipyQueue from "../SkoipyQueue.js";
 import { generateSkoipyPlaylist } from "../util.js";
-import handlePlayCommand from "./play.js";
 
-const handleAutoGenerateCommand = async (
-  textChannel: TextChannel,
-  player: MusicPlayer
-) => {
+const handleAutoGenerateCommand = async (queue: SkoipyQueue) => {
   const playlistUri = await generateSkoipyPlaylist(
-    textChannel.guild.id,
-    player.generatorId
+    queue.guild.id,
+    queue.generatorId
   );
-  player.textChannel.send(`Queuing auto generated playlist`);
-  await handlePlayCommand(playlistUri, player);
+  queue.textChannel.send(`Queuing auto generated playlist`);
+  await queue.addToQueue(playlistUri);
 };
 
 export default handleAutoGenerateCommand;

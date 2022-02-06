@@ -1,13 +1,4 @@
-export type Track = {
-  title: string;
-  artist?: string;
-  spotifyId?: string;
-  ytId?: string;
-};
-
-export interface TrackGenerator {
-  generateTracks(): Promise<Track[]>;
-}
+import { YoutubeTrack } from "@discordx/music";
 
 export type SheetResponse = {
   name: string;
@@ -19,8 +10,19 @@ export type SkoipyPlaylistResponse = {
   playlist: any;
 };
 
+export enum UrlSources {
+  YOUTUBE = `youtube`,
+  SPOTIFY = `spotify`,
+}
+
+export interface SkoipyTrack extends YoutubeTrack {
+  trackName: string;
+  trackArtist: string;
+}
+
 export enum Commands {
   PLAY = "play",
+  PLAY_NEXT = "play_next",
   SKIP = "skip",
   SHUFFLE = "shuffle",
   QUEUE_RANDOM = "random",

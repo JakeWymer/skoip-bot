@@ -10,7 +10,6 @@ import {
   Guild,
   Message,
 } from "discord.js";
-import MusicPlayer from "./MusicPlayer.js";
 import { Commands } from "./types.js";
 import { ErrorLogger, generateSkoipyPlaylist, setSkoipyKey } from "./util.js";
 
@@ -18,12 +17,14 @@ import "./db/index.js";
 import { REST } from "@discordjs/rest";
 import { commands } from "./commands.js";
 import handleQueueRandomCommand from "./commands/random.js";
-import handlePlayCommand from "./commands/play.js";
 import setSheetId from "./commands/setSheetId.js";
 import setOverrideSheetId from "./commands/setOverrideSheet.js";
 import ServerManager from "./ServerManager.js";
+import SkoipyQueue from "./SkoipyQueue.js";
+import { Routes } from "discord-api-types/rest/v9";
 
 export let errorLogger: ErrorLogger;
+
 const client = new Client({
   intents: [
     Intents.FLAGS.GUILDS,
@@ -50,7 +51,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
     }
     await interaction.deferReply();
     const { commandName, options } = interaction;
-    const player = await serverManager.getOrCreatePlayer(
+    const queue: SkoipyQueue = await serverManager.getOrCreateQueue(
       member,
       channel,
       guild
@@ -59,25 +60,28 @@ const handleInteraction = async (interaction: CommandInteraction) => {
     switch (commandName) {
       case Commands.QUEUE_RANDOM:
         const shouldShuffle = options.getBoolean(`shuffle`, false) || false;
-        await handleQueueRandomCommand(channel, player, shouldShuffle);
+        await handleQueueRandomCommand(queue, shouldShuffle);
         break;
       case Commands.SKIP:
-        player.playNext(true);
+        queue.handleSkip();
         break;
       case Commands.SHUFFLE:
-        player.shuffle();
+        queue.mix();
         break;
       case Commands.CLEAR_QUEUE:
-        player.clearQueue();
+        queue.clearTracks();
         break;
       case Commands.SHOW_QUEUE:
-        await player.showQueue();
+        queue.showQueue();
         break;
       case Commands.LEAVE:
-        await player.leave();
+        queue.leave();
         break;
       case Commands.PLAY:
-        await handlePlayCommand(options.getString(`url`, true), player);
+        await queue.addToQueue(options.getString(`url`, true));
+        break;
+      case Commands.PLAY_NEXT:
+        await queue.addToQueue(options.getString(`url`, true), true);
         break;
       case Commands.SET_SHEET:
         await setSheetId(options.getString(`id`, true), guild.id, channel);
@@ -90,17 +94,13 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         );
         break;
       case Commands.AUTO_QUEUE:
-        player.isAutoQueue = options.getBoolean(`enabled`, true);
-        player.autoQueueShuffle = options.getBoolean(`shuffle`, false) || false;
+        queue.isAutoQueue = options.getBoolean(`enabled`, true);
+        queue.shuffleAutoQueue = options.getBoolean(`shuffle`, false) || false;
         channel.send(
-          `Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`
+          `Auto Queue ${queue.isAutoQueue ? `enabled` : `disabled`}`
         );
-        if (!player.queue.length && player.isAutoQueue) {
-          await handleQueueRandomCommand(
-            channel,
-            player,
-            player.autoQueueShuffle
-          );
+        if (!queue.size && queue.isAutoQueue) {
+          await handleQueueRandomCommand(queue, queue.shuffleAutoQueue);
         }
         break;
       case Commands.SET_SKOIPY_KEY:
@@ -110,21 +110,21 @@ const handleInteraction = async (interaction: CommandInteraction) => {
       case Commands.GENERATE_AND_PLAY:
         const generatorId = options.getInteger(`generator_id`, true);
         const playlistUri = await generateSkoipyPlaylist(guild.id, generatorId);
-        await handlePlayCommand(playlistUri, player);
+        await queue.addToQueue(playlistUri);
         break;
       case Commands.AUTO_GENERATE:
-        player.isAutoQueue = options.getBoolean(`enabled`, true);
-        player.generatorId = options.getInteger(`generator_id`, true);
+        queue.isAutoQueue = options.getBoolean(`enabled`, true);
+        queue.generatorId = options.getInteger(`generator_id`, true);
         channel.send(
-          `Auto Queue ${player.isAutoQueue ? `enabled` : `disabled`}`
+          `Auto Queue ${queue.isAutoQueue ? `enabled` : `disabled`}`
         );
-        if (!player.queue.length && player.isAutoQueue) {
+        if (!queue.size && queue.isAutoQueue) {
           const playlistUri = await generateSkoipyPlaylist(
             guild.id,
-            player.generatorId
+            queue.generatorId
           );
-          player.textChannel.send(`Queuing auto generated playlist`);
-          await handlePlayCommand(playlistUri, player);
+          queue.textChannel.send(`Queuing auto generated playlist`);
+          await queue.addToQueue(playlistUri);
         }
         break;
       default:
@@ -133,6 +133,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
     return interaction.editReply({ content: `Woohooo` });
   } catch (err) {
     console.log(err);
+    errorLogger.log(JSON.stringify(err));
     return interaction.editReply({ content: `Something went wrong :(` });
   }
 };
@@ -141,34 +142,52 @@ const handleBotMessage = async (message: Message) => {
   const channel = message.channel as TextChannel;
   const member = message.member as GuildMember;
   const guild = message.guild as Guild;
-  const player = (await serverManager.getOrCreatePlayer(
+  const queue = (await serverManager.getOrCreateQueue(
     member,
     channel,
     guild
-  )) as MusicPlayer;
+  )) as SkoipyQueue;
   const parsedMessage = message.content.substring(1);
   switch (parsedMessage) {
     case Commands.SKIP:
-      player.playNext(true);
+      queue.handleSkip();
       break;
     default:
       channel.send(`Bot command not supported`);
   }
 };
 
-client.on("ready", async () => {
-  console.log("Skoipy online");
+client.once("ready", async () => {
+  const CLIENT_ID = client?.user?.id as string;
+  const TEST_GUILD_ID = process.env.TEST_GUILD_ID;
 
   const rest = new REST({ version: "9" }).setToken(process.env.BOT_TOKEN || ``);
-  try {
-    console.log("Started refreshing application (/) commands.");
-    const slashCommandsUrl = process.env.SLASH_COMMANDS_URL || ``;
-    await rest.put(`/${slashCommandsUrl}`, { body: commands });
 
-    console.log("Successfully reloaded application (/) commands.");
+  try {
+    console.log("Started reloading application commands.");
+    if (TEST_GUILD_ID) {
+      await rest.put(
+        Routes.applicationGuildCommands(CLIENT_ID, TEST_GUILD_ID),
+        {
+          body: commands,
+        }
+      );
+    } else {
+      await rest.put(Routes.applicationCommands(CLIENT_ID), {
+        body: commands,
+      });
+    }
+    console.log("Successfully reloaded application commands.");
   } catch (error) {
     console.error(error);
   }
+
+  const ERROR_CHANNEL_ID = process.env.ERROR_CHANNEL_ID as string;
+  const errorChannel = (await client.channels.fetch(
+    ERROR_CHANNEL_ID
+  )) as TextChannel;
+
+  errorLogger = new ErrorLogger(errorChannel);
 });
 
 client.on(`messageCreate`, async (message) => {
