@@ -1,23 +1,7 @@
 import axios from "axios";
 import { TextChannel } from "discord.js";
-import SpotifyWebApi from "spotify-web-api-node";
 import Server from "./db/models/Server.js";
-import SpotifyGenerator from "./SpotifyGenerator.js";
-import { SkoipyPlaylistResponse } from "./types";
-import YoutubeGenerator from "./YoutubeGenerator.js";
-
-export const setupSpotifyApi = async (): Promise<SpotifyWebApi> => {
-  const spotifyApi = new SpotifyWebApi({
-    clientId: process.env.SPOTIFY_CLIENT_ID,
-    clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-  });
-
-  // Retrieve an access token.
-  const spotifyToken = await spotifyApi.clientCredentialsGrant();
-  spotifyApi.setAccessToken(spotifyToken.body.access_token);
-
-  return spotifyApi;
-};
+import { SkoipyPlaylistResponse, UrlSources } from "./types.js";
 
 export const getRandomElement = (arr: any[]) => {
   const randomIndex = Math.floor(Math.random() * arr.length);
@@ -79,17 +63,14 @@ export const setOverrideSheet = async (
   return channel.send(`Set Skoipy API key`);
 };
 
-export const getTrackGenerator = async (url: string) => {
-  let generator;
-  if (url.includes(`spotify`)) {
-    const spotifyApi = await setupSpotifyApi();
-    generator = new SpotifyGenerator(url, spotifyApi);
-  } else if (url.includes("youtube")) {
-    generator = new YoutubeGenerator(url);
+export const getUrlSource = (url: string) => {
+  if (url.includes(UrlSources.SPOTIFY)) {
+    return UrlSources.SPOTIFY;
+  } else if (url.includes(UrlSources.YOUTUBE)) {
+    return UrlSources.YOUTUBE;
   } else {
     throw new Error(`Unsupported integration`);
   }
-  return generator;
 };
 
 export class ErrorLogger {
@@ -97,7 +78,7 @@ export class ErrorLogger {
 
   constructor(channel: TextChannel) {
     this.errorChannel = channel;
-    this.log("Logging online");
+    this.log("Skoipy online");
   }
 
   log(message: string) {

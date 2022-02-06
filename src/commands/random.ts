@@ -1,30 +1,28 @@
-import MusicPlayer from "../MusicPlayer";
-import { TextChannel } from "discord.js";
 import { getRandomPlaylist } from "../sheets.js";
 import { trackEvent } from "../tracking.js";
-import { getTrackGenerator } from "../util.js";
+import SkoipyQueue from "../SkoipyQueue";
 
 const handleQueueRandomCommand = async (
-  textChannel: TextChannel,
-  player: MusicPlayer,
+  queue: SkoipyQueue,
   shouldShuffle = false
 ) => {
   // Reset to 0 to make sure auto generate is turned off
-  player.generatorId = 0;
-  const playlist = await getRandomPlaylist(textChannel.guild.id);
+  queue.generatorId = 0;
+  const playlist = await getRandomPlaylist(queue.guild.id);
   let message = `Queuing ${playlist.name}`;
   if (playlist.artist) {
     message += ` by ${playlist.artist}`;
   }
-  player.textChannel.send(message);
+  queue.textChannel.send(message);
   trackEvent(`Random Queued`, {
     name: playlist.name,
     artist: playlist.artist || `Unknown`,
-    $distinct_id: textChannel.guild.id,
+    $distinct_id: queue.guild.id,
   });
-  const trackGenerator = await getTrackGenerator(playlist.uri);
-  const tracks = await trackGenerator.generateTracks();
-  await player.appendQueue(tracks, shouldShuffle);
+  await queue.addToQueue(playlist.uri);
+  if (shouldShuffle) {
+    queue.mix();
+  }
 };
 
 export default handleQueueRandomCommand;
