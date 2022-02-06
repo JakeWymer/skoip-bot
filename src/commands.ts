@@ -152,6 +152,7 @@ export const commands = [
   random,
   skip,
   play,
+  playNext,
   shuffle,
   clear,
   showQueue,
