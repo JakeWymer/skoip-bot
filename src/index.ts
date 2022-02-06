@@ -75,7 +75,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         queue.showQueue();
         break;
       case Commands.LEAVE:
-        queue.leave();
+        serverManager.leaveServer(queue);
         break;
       case Commands.PLAY:
         await queue.addToQueue(options.getString(`url`, true));

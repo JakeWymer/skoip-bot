@@ -65,7 +65,7 @@ class ServerManager {
     return !numberOfVoiceMembers;
   };
 
-  private leaveServer = (queue: SkoipyQueue) => {
+  leaveServer = (queue: SkoipyQueue) => {
     delete this.queueGuildMap[queue.guild.id];
     queue.leave();
   };
