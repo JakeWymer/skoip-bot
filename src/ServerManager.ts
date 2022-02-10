@@ -62,7 +62,7 @@ class ServerManager {
 
   private shouldLeaveChannel = (queue: SkoipyQueue) => {
     const numberOfVoiceMembers = queue.voiceChannel.members.size;
-    return !numberOfVoiceMembers;
+    return numberOfVoiceMembers === 1;
   };
 
   leaveServer = (queue: SkoipyQueue) => {
