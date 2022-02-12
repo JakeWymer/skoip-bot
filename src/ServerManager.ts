@@ -66,6 +66,7 @@ class ServerManager {
   };
 
   leaveServer = (queue: SkoipyQueue) => {
+    queue.textChannel.send(`Good bye!`)
     delete this.queueGuildMap[queue.guild.id];
     queue.leave();
   };

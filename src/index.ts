@@ -70,6 +70,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         break;
       case Commands.CLEAR_QUEUE:
         queue.clearTracks();
+        queue.handleSkip();
         break;
       case Commands.SHOW_QUEUE:
         queue.showQueue();
