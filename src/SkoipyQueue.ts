@@ -19,6 +19,7 @@ class SkoipyQueue extends Queue {
   shuffleAutoQueue: boolean;
   textChannel: TextChannel;
   voiceChannel: VoiceChannel;
+  shouldLeave: boolean;
 
   constructor(
     player: Player,
@@ -34,22 +35,13 @@ class SkoipyQueue extends Queue {
     this.shuffleAutoQueue = false;
     this.textChannel = textChannel;
     this.voiceChannel = voiceChannel;
+    this.shouldLeave = false;
 
     // When track beings playing
     this.player.on("onStart", this.onPlay);
 
     // When queue is empty
-    this.player.on("onFinishPlayback", ([]) => {
-      if (this.isAutoQueue) {
-        if (!!this.generatorId) {
-          handleAutoGenerateCommand(this);
-        } else {
-          handleQueueRandomCommand(this, this.shuffleAutoQueue);
-        }
-      } else {
-        this.textChannel.send("That's the end of the queue! :musical_note:");
-      }
-    });
+    this.player.on("onFinishPlayback", this.onFinishPlayback);
   }
 
   async addToQueue(url: string, enqueueTop = false) {
@@ -102,7 +94,7 @@ class SkoipyQueue extends Queue {
     this.textChannel.send({ embeds: [embed] });
   };
 
-  onPlay(queueInfo: any) {
+  private onPlay(queueInfo: any) {
     const queue = queueInfo[0];
     const track = queueInfo[1] as SkoipyTrack;
     const embed = queue.buildNowPlayingEmbed(track);
@@ -112,6 +104,22 @@ class SkoipyQueue extends Queue {
       artist: track.trackArtist || "unknown",
       $distinct_id: queue.guild.id,
     });
+  }
+
+  private onFinishPlayback(queueInfo: SkoipyQueue[]) {
+    const queue = queueInfo[0];
+    if (queue.shouldLeave) {
+      return queue.textChannel.send(`Good bye!`);
+    }
+    if (queue.isAutoQueue) {
+      if (!!queue.generatorId) {
+        handleAutoGenerateCommand(queue);
+      } else {
+        handleQueueRandomCommand(queue, queue.shuffleAutoQueue);
+      }
+    } else {
+      queue.textChannel.send("That's the end of the queue! :musical_note:");
+    }
   }
 
   private stringifySpotifyArtists(artists: any): string {

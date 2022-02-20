@@ -1,14 +1,23 @@
-import { Guild, GuildMember, TextChannel, VoiceChannel } from "discord.js";
+import {
+  Collection,
+  Guild,
+  GuildMember,
+  TextChannel,
+  VoiceChannel,
+} from "discord.js";
 import { getRandomElement } from "./util.js";
 import { Player } from "@discordx/music";
 import SkoipyQueue from "./SkoipyQueue.js";
 
-class ServerManager {
-  queueGuildMap: { [key: string]: SkoipyQueue } = {};
-
+class ServerManager extends Player {
+  queues: Collection<string, SkoipyQueue>;
   constructor() {
+    super();
+
+    this.queues = new Collection();
+
     setInterval(() => {
-      Object.values(this.queueGuildMap).forEach((queue) => {
+      this.queues.forEach((queue) => {
         if (this.shouldLeaveChannel(queue)) {
           this.leaveServer(queue);
         }
@@ -21,14 +30,11 @@ class ServerManager {
     textChannel: TextChannel,
     guild: Guild
   ): Promise<SkoipyQueue> => {
-    if (this.isInServer(guild.id)) {
-      return this.queueGuildMap[guild.id];
+    let queue = this.queues.get(guild.id);
+    if (!queue) {
+      queue = await this.joinChannelInteraction(user, textChannel, guild);
     }
-    return await this.joinChannelInteraction(user, textChannel, guild);
-  };
-
-  private isInServer = (guildId: string) => {
-    return this.queueGuildMap[guildId];
+    return queue;
   };
 
   private joinChannelInteraction = async (
@@ -36,15 +42,13 @@ class ServerManager {
     textChannel: TextChannel,
     guild: Guild
   ) => {
-    const player = new Player();
     const voiceChannel = user.voice.channel as VoiceChannel;
-    const queue = player.queue(
+    const queue = this.queue(
       guild,
-      () => new SkoipyQueue(player, guild, voiceChannel, textChannel)
+      () => new SkoipyQueue(this, guild, voiceChannel, textChannel)
     );
     await queue.join(voiceChannel);
     textChannel.send(this.getJoinMessage(user));
-    this.queueGuildMap[guild.id] = queue;
     return queue;
   };
 
@@ -66,8 +70,7 @@ class ServerManager {
   };
 
   leaveServer = (queue: SkoipyQueue) => {
-    queue.textChannel.send(`Good bye!`)
-    delete this.queueGuildMap[queue.guild.id];
+    queue.shouldLeave = true;
     queue.leave();
   };
 }
