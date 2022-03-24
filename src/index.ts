@@ -44,12 +44,12 @@ const handleInteraction = async (interaction: CommandInteraction) => {
   const guild = interaction.guild;
 
   try {
-    await interaction.deferReply();
     if (!guild || !channel || !member || !voiceChannel) {
       throw new Error(
         `Guild, Channel, Voice Channel, and Member are all required for command interactions`
       );
     }
+    await interaction.deferReply();
     const { commandName, options } = interaction;
     const queue: SkoipyQueue = await serverManager.getOrCreateQueue(
       member,
@@ -132,9 +132,9 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         throw new Error(`Command not found`);
     }
     return interaction.editReply({ content: `Woohooo` });
-  } catch (err: any) {
-    console.error(err);
-    errorLogger.log(JSON.stringify(err.message));
+  } catch (err) {
+    console.log(err);
+    errorLogger.log(JSON.stringify(err));
     return interaction.editReply({ content: `Something went wrong :(` });
   }
 };
