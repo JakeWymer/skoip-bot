@@ -156,6 +156,7 @@ const handleBotMessage = async (message: Message) => {
     case Commands.CLEAR_QUEUE:
       queue.clearTracks();
       queue.handleSkip();
+      break;
     default:
       channel.send(`Bot command not supported`);
   }
