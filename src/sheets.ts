@@ -1,4 +1,5 @@
 import axios from "axios";
+import { SkoipyTrack } from "./types.js";
 import { getOrCreateServerConfig, getRandomElement } from "./util.js";
 
 const fetchSpreadsheetData = async (spreadsheetId: string) => {
@@ -46,22 +47,27 @@ const getPlaylistRows = async (spreadsheetId: string) => {
   }
 };
 
-export const getUrlOverride = async (guildId: string, spotifyId: string) => {
-  const ID_INDEX = 0;
-  const OVERRIDE_INDEX = 1;
+export const fetchUrlOverrides = async (
+  tracks: SkoipyTrack[],
+  guildId: string
+) => {
+  const SONG_NAME_INDEX = 0;
+  const ARTIST_INDEX = 1;
   try {
     const serverConfig = await getOrCreateServerConfig(guildId);
     if (!serverConfig.override_id) {
-      return spotifyId;
+      return tracks;
     }
     const overrideRows = await fetchSpreadsheetData(serverConfig.override_id);
-    const overrideUrlRow = overrideRows.find(
-      (row: any) => row.c[ID_INDEX].v === spotifyId
-    );
-    return overrideUrlRow ? overrideUrlRow.c[OVERRIDE_INDEX].v : spotifyId;
+    return overrideRows.reduce((mapObj: any, row: any) => {
+      return {
+        ...mapObj,
+        [`${row.c[SONG_NAME_INDEX].v}, ${row.c[ARTIST_INDEX].v}`]: row,
+      };
+    }, {});
   } catch (err) {
     console.log(err);
-    return spotifyId;
+    return tracks;
   }
 };
 
