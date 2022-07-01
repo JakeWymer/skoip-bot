@@ -1,5 +1,4 @@
 import axios from "axios";
-import { SkoipyTrack } from "./types.js";
 import { getOrCreateServerConfig, getRandomElement } from "./util.js";
 
 const fetchSpreadsheetData = async (spreadsheetId: string) => {
@@ -47,16 +46,13 @@ const getPlaylistRows = async (spreadsheetId: string) => {
   }
 };
 
-export const fetchUrlOverrides = async (
-  tracks: SkoipyTrack[],
-  guildId: string
-) => {
+export const fetchUrlOverrides = async (guildId: string) => {
   const SONG_NAME_INDEX = 0;
   const ARTIST_INDEX = 1;
   try {
     const serverConfig = await getOrCreateServerConfig(guildId);
     if (!serverConfig.override_id) {
-      return tracks;
+      return {};
     }
     const overrideRows = await fetchSpreadsheetData(serverConfig.override_id);
     return overrideRows.reduce((mapObj: any, row: any) => {
@@ -67,7 +63,7 @@ export const fetchUrlOverrides = async (
     }, {});
   } catch (err) {
     console.log(err);
-    return tracks;
+    return {};
   }
 };
 

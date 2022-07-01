@@ -64,7 +64,7 @@ class SkoipyQueue extends Queue {
         )) as SkoipyTrack[];
         const sTracks = await spotify.getTracks(url);
         if (tracks) {
-          const urlOverrideMap = await fetchUrlOverrides(tracks, this.guild.id);
+          const urlOverrideMap = await fetchUrlOverrides(this.guild.id);
           sTracks.forEach((track, i) => {
             const artists = this.stringifySpotifyArtists(track.artists);
             tracks[i].trackName = track.name;
