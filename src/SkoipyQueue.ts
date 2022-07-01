@@ -9,6 +9,7 @@ import {
 import spotify from "spotify-url-info";
 import handleAutoGenerateCommand from "./commands/autoGenerate.js";
 import handleQueueRandomCommand from "./commands/random.js";
+import { fetchUrlOverrides } from "./sheets.js";
 import { MP_EVENTS, trackEvent } from "./tracking.js";
 import { SkoipyTrack, UrlSources } from "./types.js";
 import { getUrlSource } from "./util.js";
@@ -63,9 +64,16 @@ class SkoipyQueue extends Queue {
         )) as SkoipyTrack[];
         const sTracks = await spotify.getTracks(url);
         if (tracks) {
+          const urlOverrideMap = await fetchUrlOverrides(this.guild.id);
           sTracks.forEach((track, i) => {
+            const artists = this.stringifySpotifyArtists(track.artists);
             tracks[i].trackName = track.name;
-            tracks[i].trackArtist = this.stringifySpotifyArtists(track.artists);
+            tracks[i].trackArtist = artists;
+            const overrideRow = urlOverrideMap[`${track.name}, ${artists}`];
+            if (overrideRow) {
+              const OVERRIDE_URL_INDEX = 3;
+              tracks[i].url = overrideRow.c[OVERRIDE_URL_INDEX].v;
+            }
           });
         }
         break;
