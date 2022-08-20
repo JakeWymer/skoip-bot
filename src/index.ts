@@ -5,10 +5,10 @@ import {
   Client,
   TextChannel,
   GuildMember,
-  Intents,
-  CommandInteraction,
   Guild,
   Message,
+  GatewayIntentBits,
+  ChatInputCommandInteraction,
 } from "discord.js";
 import { Commands } from "./types.js";
 import { ErrorLogger, generateSkoipyPlaylist, setSkoipyKey } from "./util.js";
@@ -27,9 +27,9 @@ export let errorLogger: ErrorLogger;
 
 const client = new Client({
   intents: [
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MESSAGES,
-    Intents.FLAGS.GUILD_VOICE_STATES,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -37,7 +37,7 @@ const BOT_PREFIX = `>`;
 
 const serverManager = new ServerManager();
 
-const handleInteraction = async (interaction: CommandInteraction) => {
+const handleInteraction = async (interaction: ChatInputCommandInteraction) => {
   const channel = interaction.channel as TextChannel;
   const member = interaction.member as GuildMember;
   const voiceChannel = member.voice?.channel;
@@ -66,10 +66,10 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         queue.handleSkip();
         break;
       case Commands.SHUFFLE:
-        queue.mix();
+        queue.shuffle();
         break;
       case Commands.CLEAR_QUEUE:
-        queue.clearTracks();
+        queue.clear();
         queue.handleSkip();
         break;
       case Commands.SHOW_QUEUE:
@@ -100,7 +100,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         channel.send(
           `Auto Queue ${queue.isAutoQueue ? `enabled` : `disabled`}`
         );
-        if (!queue.size && queue.isAutoQueue) {
+        if (!queue.tracks.length && queue.isAutoQueue) {
           await handleQueueRandomCommand(queue, queue.shuffleAutoQueue);
         }
         break;
@@ -119,7 +119,7 @@ const handleInteraction = async (interaction: CommandInteraction) => {
         channel.send(
           `Auto Queue ${queue.isAutoQueue ? `enabled` : `disabled`}`
         );
-        if (!queue.size && queue.isAutoQueue) {
+        if (!queue.tracks.length && queue.isAutoQueue) {
           const playlistUri = await generateSkoipyPlaylist(
             guild.id,
             queue.generatorId
@@ -154,7 +154,7 @@ const handleBotMessage = async (message: Message) => {
       queue.handleSkip();
       break;
     case Commands.CLEAR_QUEUE:
-      queue.clearTracks();
+      queue.clear();
       queue.handleSkip();
       break;
     default:
@@ -201,7 +201,7 @@ client.on(`messageCreate`, async (message) => {
 });
 
 client.on(`interactionCreate`, async (interaction) => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isChatInputCommand()) return;
   await handleInteraction(interaction);
 });
 

@@ -1,1 +1,0 @@
-declare module 'spotify-to-youtube';

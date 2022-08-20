@@ -1,0 +1,18 @@
+diff --git a/node_modules/spotify-to-yt/index.js b/node_modules/spotify-to-yt/index.js
+index edf11ba..ff23859 100644
+--- a/node_modules/spotify-to-yt/index.js
++++ b/node_modules/spotify-to-yt/index.js
+@@ -83,11 +83,11 @@ module.exports = {
+    */
+   playListGet: async (url) => {
+     if (!url) throw new Error("You did not specify the URL of Spotify!");
+-    await validateURL(url);
++    // await validateURL(url);
+     let data = await getData(url);
+     let tracks = await getTracks(url);
+     try {
+-      if (data.type !== "playlist") throw new Error("The URL is invalid!");
++      // if (data.type !== "playlist") throw new Error("The URL is invalid!");
+       var songs = [];
+       for (const song of tracks) {
+         let search = await yt.search(

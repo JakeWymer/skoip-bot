@@ -1,6 +1,5 @@
 import { Guild, GuildMember, TextChannel, VoiceChannel } from "discord.js";
 import { getRandomElement } from "./util.js";
-import { Player } from "@discordx/music";
 import SkoipyQueue from "./SkoipyQueue.js";
 
 class ServerManager {
@@ -36,13 +35,9 @@ class ServerManager {
     textChannel: TextChannel,
     guild: Guild
   ) => {
-    const player = new Player();
     const voiceChannel = user.voice.channel as VoiceChannel;
-    const queue = player.queue(
-      guild,
-      () => new SkoipyQueue(player, guild, voiceChannel, textChannel)
-    );
-    await queue.join(voiceChannel);
+    const queue = new SkoipyQueue(guild, voiceChannel, textChannel);
+
     textChannel.send(this.getJoinMessage(user));
     this.queueGuildMap[guild.id] = queue;
     return queue;
@@ -66,7 +61,7 @@ class ServerManager {
   };
 
   leaveServer = (queue: SkoipyQueue) => {
-    queue.textChannel.send(`Good bye!`)
+    queue.textChannel.send(`Good bye!`);
     delete this.queueGuildMap[queue.guild.id];
     queue.leave();
   };

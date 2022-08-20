@@ -15,9 +15,10 @@ export enum UrlSources {
   SPOTIFY = `spotify`,
 }
 
-export interface SkoipyTrack extends YoutubeTrack {
+export interface SkoipyTrack {
   trackName: string;
   trackArtist: string;
+  youtubeUrl: string;
 }
 
 export enum Commands {
