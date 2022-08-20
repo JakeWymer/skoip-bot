@@ -21,7 +21,7 @@ const handleQueueRandomCommand = async (
   });
   await queue.addToQueue(playlist.uri);
   if (shouldShuffle) {
-    queue.mix();
+    queue.shuffle();
   }
 };
 
